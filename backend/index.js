@@ -10,6 +10,7 @@ const connectDB = require('./config/dbConn')
 const supabase = require('./config/supabaseConfig');
 
 
+
 connectDB();
 
 app.use(cors(corsOptions));
@@ -21,6 +22,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api', require('./routes/authRoutes'));
+
+app.use('/api' , require('./routes/userRoutes') )
 
 
 

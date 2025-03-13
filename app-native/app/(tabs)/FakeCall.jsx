@@ -1,37 +1,126 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   StatusBar,
-  TextInput
+  TextInput,
+  Modal,
+  FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useRouter } from 'expo-router';
 
 const FakeCallScreen = () => {
-  const [callerDetails, setCallerDetails] = useState('');
+  const [callerName, setCallerName] = useState('');
+  const [callerPhone, setCallerPhone] = useState('');
   const [showWarning, setShowWarning] = useState(true);
-  
+  const [calls, setCalls] = useState([]);
+  const [formModalVisible, setFormModalVisible] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const url = 'http://192.168.31.15:5000';
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchCalls();
+  }, []);
+
+  const fetchCalls = async() => {
+    try {
+      const response = await fetch(`${url}/api/get`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to get caller details');
+      }
+      const data = await response.json();
+      setCalls(data);
+    } catch (error) {
+      console.error('Error fetching calls:', error);
+    }
+  };
+
+  const handleSetCaller = async() => {
+    try {
+      const response = await fetch(`${url}/api/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: callerName, phone: callerPhone }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to save caller details');
+      }
+      // Refresh the calls list after adding a new contact
+      fetchCalls();
+      // Set the newly added contact as selected
+      setSelectedContact({ name: callerName, phone: callerPhone });
+    } catch (e) {
+      console.error('Error saving caller:', e);
+    }
+    setFormModalVisible(false);
+  };
+
+  const handleSelectContact = (contact) => {
+    setSelectedContact(contact);
+    setCallerName(contact.name);
+    setCallerPhone(contact.phone);
+  };
+
+  const handleStartCall = () => {
+    if (selectedContact) {
+      router.push({
+        pathname: '/call',
+        params: { 
+          name: selectedContact.name, 
+          phone: selectedContact.phone 
+        }
+      });
+    } else if (callerName && callerPhone) {
+      router.push({
+        pathname: '/call',
+        params: { 
+          name: callerName, 
+          phone: callerPhone 
+        }
+      });
+    } else {
+      alert('Please select or set a caller first');
+    }
+  };
+
+  const renderContactItem = ({ item }) => (
+    <TouchableOpacity 
+      style={[
+        styles.contactItem, 
+        selectedContact && selectedContact.phone === item.phone ? styles.selectedContact : null
+      ]}
+      onPress={() => handleSelectContact(item)}
+    >
+      <View style={styles.contactAvatar}>
+        <Icon name="person" size={24} color="#fff" />
+      </View>
+      <View style={styles.contactDetails}>
+        <Text style={styles.contactName}>{item.name}</Text>
+        <Text style={styles.contactPhone}>{item.phone}</Text>
+      </View>
+      {selectedContact && selectedContact.phone === item.phone && (
+        <Icon name="check-circle" size={24} color="#4CAF50" />
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.safeArea} />
-      <View style={styles.statusBar}>
-        <Text style={styles.timeText}>02:03</Text>
-        <FontAwesome name="whatsapp" size={20} color="black" />
-        <View style={styles.statusBarRight}>
-          <Text style={styles.kbpsText}>22.0 KB/S</Text>
-          <Ionicons name="wifi" size={20} color="black" />
-          <Ionicons name="call-outline" size={18} color="black" />
-          <Icon name="signal-cellular-alt" size={18} color="black" />
-          <FontAwesome name="battery-full" size={20} color="black" />
-          <Text style={styles.batteryText}>100%</Text>
-        </View>
-      </View>
-
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logo}>
@@ -51,21 +140,91 @@ const FakeCallScreen = () => {
           Place a fake phone call and pretend you are talking to someone.
         </Text>
         
-        {/* Caller Details */}
+        {/* Caller Details Button */}
         <View style={styles.callerDetailsContainer}>
           <View style={styles.callerDetailsContent}>
             <Text style={styles.callerDetailsTitle}>Caller Details</Text>
-            <TextInput
-              style={styles.callerDetailsInput}
-              placeholder="Set caller details"
-              value={callerDetails}
-              onChangeText={setCallerDetails}
-            />
+            <Text style={styles.callerDetailsText}>
+              {selectedContact 
+                ? `${selectedContact.name} (${selectedContact.phone})` 
+                : callerName && callerPhone 
+                  ? `${callerName} (${callerPhone})` 
+                  : "No caller details set"}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => setFormModalVisible(true)}
+          >
             <Icon name="edit" size={20} color="black" />
           </TouchableOpacity>
         </View>
+
+        {/* Saved Contacts Section */}
+        <View style={styles.savedContactsSection}>
+          <Text style={styles.sectionTitle}>Saved Contacts</Text>
+          {calls.length > 0 ? (
+            <FlatList
+              data={calls}
+              renderItem={renderContactItem}
+              keyExtractor={(item, index) => index.toString()}
+              style={styles.contactsList}
+            />
+          ) : (
+            <Text style={styles.noContactsText}>No saved contacts</Text>
+          )}
+        </View>
+        
+        {/* Caller Details Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={formModalVisible}
+          onRequestClose={() => setFormModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Set Caller Details</Text>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter caller name"
+                  value={callerName}
+                  onChangeText={setCallerName}
+                />
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter phone number"
+                  value={callerPhone}
+                  onChangeText={setCallerPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setFormModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.setButton]}
+                  onPress={handleSetCaller}
+                >
+                  <Text style={styles.setButtonText}>Set</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
         
         {/* Warning Popup */}
         {showWarning && (
@@ -83,14 +242,13 @@ const FakeCallScreen = () => {
         )}
         
         {/* Call Button */}
-        <TouchableOpacity style={styles.callButton}>
+        <TouchableOpacity onPress={handleStartCall} style={styles.callButton}>
           <Text style={styles.callButtonText}>Start Call</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -180,7 +338,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  callerDetailsInput: {
+  callerDetailsText: {
     fontSize: 16,
     color: '#888',
   },
@@ -234,6 +392,71 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  setButton: {
+    backgroundColor: '#4CAF50',
+  },
+  setButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

@@ -19,8 +19,10 @@ import {
   Entypo,
   FontAwesome
 } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const HelpScreen = () => {
+  const router = useRouter();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
@@ -61,7 +63,7 @@ const HelpScreen = () => {
                 <Text style={styles.optionSubtitle}>Ask for help privately.</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.enterButton}>
+            <TouchableOpacity onPress={() => router.push('/chatbot')} style={styles.enterButton}>
               <Text style={styles.enterButtonText}>Enter</Text>
             </TouchableOpacity>
           </View>
