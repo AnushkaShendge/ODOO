@@ -20,7 +20,7 @@ app.use(express.json());
 
 app.use(cookieParser());
 
-app.use('/auth', require('./routes/authRoutes'));
+app.use('/api', require('./routes/authRoutes'));
 
 
 
