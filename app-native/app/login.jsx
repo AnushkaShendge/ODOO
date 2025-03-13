@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -15,15 +15,30 @@ import {
   MaterialIcons
 } from '@expo/vector-icons';
 import CountryPicker from 'react-native-country-picker-modal';
-import { useRoute } from '@react-navigation/native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
-  const router = useRoute();
-  const url = process.env.URL;
+  const router = useRouter();
+  const url = 'http://192.168.31.15:5000'
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('userToken');
+        if (userToken) {
+          router.push('/(tabs)');
+        }
+      } catch (error) {
+        console.error('Error checking token:', error);
+      }
+    };
+    
+    checkToken();
+  } , [])
   const handleLogin = async () => {
     try {
       const response = await fetch(`${url}/api/login`, {
@@ -37,15 +52,16 @@ const LoginScreen = () => {
         throw new Error('Failed to login');
       }
       const data = await response.json();
-      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userToken', data.accessToken);
       await AsyncStorage.setItem('userData', JSON.stringify(data.user));
       // Store token and navigate to home screen
       console.log(data);
+      router.push('/(tabs)')
     } catch (error) {
       console.error(error);
     }
   }
-
+  
 
   return (
     <SafeAreaView style={styles.container}>

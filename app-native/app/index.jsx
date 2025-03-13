@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -16,6 +16,7 @@ import {
 } from '@expo/vector-icons';
 import CountryPicker from 'react-native-country-picker-modal';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignUpScreen = () => {
   const [countryCode, setCountryCode] = useState('IN');
@@ -27,6 +28,20 @@ const SignUpScreen = () => {
   const router = useRouter();
   
   const url = process.env.URL;
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('userToken');
+        if (userToken) {
+          router.push('/(tabs)');
+        }
+      } catch (error) {
+        console.error('Error checking token:', error);
+      }
+    };
+    
+    checkToken();
+    } , [])
 
   const handleSubmit = async () => {
     try {

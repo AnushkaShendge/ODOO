@@ -9,22 +9,18 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#FF4F93',
+        tabBarActiveTintColor: '#EC4571',
         tabBarInactiveTintColor: 'black',
-        tabBarLabel: ({ focused, children }) => (
-          <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-            {children}
-          </Text>
-        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Track Me',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-              <Ionicons name="location" size={24} color={color} />
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="location" size={26} color="#EC4571"   />
+              <Text style={styles.tabLabel}>Track Me</Text>
             </View>
           ),
         }}
@@ -32,10 +28,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Recordings"
         options={{
-          title: 'Record',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-              <Ionicons name="videocam" size={24} color={color} />
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="videocam" size={26} color="black"   />
+              <Text style={styles.tabLabel}>Record</Text>
             </View>
           ),
         }}
@@ -43,10 +40,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Safety"
         options={{
-          title: 'Safety',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-              <Ionicons name="shield-checkmark" size={24} color={color} />
+          title: '',
+          tabBarIcon: () => (
+            <View style={styles.sosButton}>
+              <Text style={styles.sosText}>SOS</Text>
             </View>
           ),
         }}
@@ -54,10 +51,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="FakeCall"
         options={{
-          title: 'Fake Call',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-              <Ionicons name="call" size={24} color={color} />
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="call" size={26} color="black"  />
+              <Text style={styles.tabLabel}>Fake Call</Text>
             </View>
           ),
         }}
@@ -65,10 +63,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Help"
         options={{
-          title: 'Help',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-              <Ionicons name="help-circle" size={24} color={color} />
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="help-circle" size={26} color="black"   />
+              <Text style={styles.tabLabel}>Help</Text>
             </View>
           ),
         }}
@@ -81,26 +80,38 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    paddingVertical: 10,
     backgroundColor: 'white',
-    height: 65,
+    height: 70,
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 5,
-  },
-  activeTabItem: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#FF4F93',
+    marginBottom: 10
   },
   tabLabel: {
     fontSize: 12,
-    marginTop: 5,
+    color: 'black',
   },
-  tabLabelActive: {
-    color: '#FF4F93',
+  sosButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#FF4259',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  sosText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });
