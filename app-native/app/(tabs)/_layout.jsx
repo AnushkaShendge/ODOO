@@ -11,6 +11,9 @@ export default function TabLayout() {
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: '#EC4571',
         tabBarInactiveTintColor: 'black',
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
       }}
     >
       <Tabs.Screen
@@ -19,7 +22,7 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ color }) => (
             <View style={styles.tabItem}>
-              <Ionicons name="location" size={26} color="#EC4571"   />
+              <Ionicons name="location" size={24} color="#EC4571" />
               <Text style={styles.tabLabel}>Track Me</Text>
             </View>
           ),
@@ -31,8 +34,8 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ color }) => (
             <View style={styles.tabItem}>
-              <Ionicons name="videocam" size={26} color="black"   />
-              <Text style={styles.tabLabel}>Record</Text>
+              <Ionicons name="videocam" size={24} color="black" />
+              <Text style={styles.tabLabel} >Record</Text>
             </View>
           ),
         }}
@@ -54,8 +57,8 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ color }) => (
             <View style={styles.tabItem}>
-              <Ionicons name="call" size={26} color="black"  />
-              <Text style={styles.tabLabel}>Fake Call</Text>
+              <Ionicons name="call" size={24} color="black" />
+              <Text style={styles.tabLabel} >Fake Call</Text>
             </View>
           ),
         }}
@@ -66,8 +69,20 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ color }) => (
             <View style={styles.tabItem}>
-              <Ionicons name="help-circle" size={26} color="black"   />
-              <Text style={styles.tabLabel}>Help</Text>
+              <Ionicons name="help-circle" size={24} color="black" />
+              <Text style={styles.tabLabel} >Help</Text>
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="MapPage"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="help-circle" size={24} color="black" />
+              <Text style={styles.tabLabel} >Help</Text>
             </View>
           ),
         }}
@@ -84,34 +99,38 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     backgroundColor: 'white',
-    height: 70,
+    height: 75,
+    paddingBottom: 20,
+    paddingTop: 2,
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10
+    paddingTop: 5,
+    height: 60,
   },
   tabLabel: {
     fontSize: 12,
     color: 'black',
+    marginTop: 1,
   },
   sosButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
     backgroundColor: '#FF4259',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   sosText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
   },
 });

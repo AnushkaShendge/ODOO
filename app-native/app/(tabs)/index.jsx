@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -7,22 +7,12 @@ import {
   StatusBar,
   Dimensions
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import MapPage from '../../components/MapPage';
 
 const { width, height } = Dimensions.get('window');
 
 export default function TrackMeScreen() {
-  const [location, setLocation] = useState({
-    latitude: 13.0827,
-    longitude: 80.2707,
-    latitudeDelta: 0.015,
-    longitudeDelta: 0.0121,
-  });
-  
   return (
     <View style={styles.container}>
       <View style={styles.safeArea} />
@@ -30,12 +20,18 @@ export default function TrackMeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Icon name="favorite" size={30} color="#FF4F93" />
+          <View style={styles.logoIconContainer}>
+            <Ionicons name="heart" size={24} color="#FF4F93" />
+          </View>
           <Text style={styles.logoText}>I'M SAFE</Text>
         </View>
         <View style={styles.headerIcons}>
-          <Ionicons name="notifications-outline" size={24} color="black" />
-          <Icon name="menu" size={30} color="black" style={styles.menuIcon} />
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={24} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="menu" size={28} color="black" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -62,34 +58,7 @@ export default function TrackMeScreen() {
       
       {/* Map View */}
       <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          initialRegion={location}
-        >
-          <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude
-            }}
-          >
-            <View style={styles.markerContainer}>
-              <Icon name="location-on" size={30} color="black" />
-            </View>
-          </Marker>
-        </MapView>
-        
-        {/* Location Button */}
-        <View style={styles.locationButtonContainer}>
-          <TouchableOpacity style={styles.locationButton}>
-            <Icon name="my-location" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Track Me Button */}
-        <TouchableOpacity style={styles.trackMeButton}>
-          <Text style={styles.trackMeButtonText}>Track me</Text>
-        </TouchableOpacity>
+        <MapPage />
       </View>
     </View>
   );
@@ -103,34 +72,6 @@ const styles = StyleSheet.create({
   safeArea: {
     height: StatusBar.currentHeight || 47,
   },
-  statusBar: {
-    height: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  timeText: {
-    marginRight: 10,
-  },
-  statusBarRight: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  locationIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 5,
-  },
-  kbpsText: {
-    marginLeft: 2,
-    fontSize: 12,
-  },
-  batteryText: {
-    marginLeft: 2,
-    fontSize: 12,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -142,18 +83,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  logoIconContainer: {
+    marginRight: 8,
+  },
   logoText: {
     color: '#FF4F93',
     fontSize: 22,
     fontWeight: 'bold',
-    marginLeft: 5,
   },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  menuIcon: {
-    marginLeft: 15,
+  iconButton: {
+    marginLeft: 20,
   },
   titleSection: {
     paddingHorizontal: 20,
@@ -162,7 +105,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
     marginBottom: 5,
   },
@@ -176,6 +119,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   addFriendTitle: {
     fontSize: 18,
@@ -202,51 +147,5 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
-    position: 'relative',
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  markerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  locationButtonContainer: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-  },
-  locationButton: {
-    backgroundColor: 'white',
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  trackMeButton: {
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    backgroundColor: '#FF4F93',
-    borderRadius: 30,
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  trackMeButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
