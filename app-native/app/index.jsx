@@ -27,7 +27,7 @@ const SignUpScreen = () => {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
   
-  const url = process.env.URL;
+  const url = "http://192.168.0.105:5000";
   useEffect(() => {
     const checkToken = async () => {
       try {

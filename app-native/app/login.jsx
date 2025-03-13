@@ -24,7 +24,7 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
-  const url = 'http://192.168.31.15:5000'
+  const url = 'http://192.168.0.105:5000'
   useEffect(() => {
     const checkToken = async () => {
       try {
