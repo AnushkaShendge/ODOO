@@ -25,7 +25,32 @@ const SignUpScreen = () => {
   const [password, setPassword] = useState('');
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
+  
+  const url = process.env.URL;
 
+  const handleSubmit = async () => {
+    try {
+      if(phoneNumber.length < 10) {
+        throw new Error('Invalid phone number');
+      }
+      const response = await fetch(`${url}/api/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, phone:phoneNumber }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to sign up');
+      }
+      const data = await response.json();
+      // Store token and navigate to OTP screen
+      console.log(data);
+      router.push('/otp');
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
 
   const onSelectCountry = (country) => {
@@ -129,7 +154,7 @@ const SignUpScreen = () => {
         </View>
         
         {/* Continue button */}
-        <TouchableOpacity onPress={() => router.push('/otp')} style={styles.continueButton}>
+        <TouchableOpacity onPress={handleSubmit} style={styles.continueButton}>
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
 

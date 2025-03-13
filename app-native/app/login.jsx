@@ -16,11 +16,35 @@ import {
 } from '@expo/vector-icons';
 import CountryPicker from 'react-native-country-picker-modal';
 import { useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRoute();
+  const url = process.env.URL;
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${url}/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to login');
+      }
+      const data = await response.json();
+      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      // Store token and navigate to home screen
+      console.log(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
 
   return (
@@ -77,7 +101,7 @@ const LoginScreen = () => {
         
         
         {/* Continue button */}
-        <TouchableOpacity style={styles.continueButton}>
+        <TouchableOpacity onPress={handleLogin} style={styles.continueButton}>
           <Text style={styles.continueButtonText}>Login</Text>
         </TouchableOpacity>
 
