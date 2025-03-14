@@ -6,7 +6,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import io from "socket.io-client";
 
 const { width, height } = Dimensions.get("window");
-const socket = io("http://192.168.80.60:5000"); // Replace with your backend IP
+const socket = io("https://43fd-2402-3a80-1672-b094-1c4f-f461-56e8-3371.ngrok-free.app"); // Replace with your backend IP
 
 const MapPage = () => {
   const [location, setLocation] = useState(null);
@@ -14,7 +14,7 @@ const MapPage = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
-  const userName = "JohnDoe"; // Replace with actual username (e.g., from authentication)
+  const userName = "Anushka"; // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
     let { status } = await Location.getForegroundPermissionsAsync();
@@ -87,6 +87,7 @@ const MapPage = () => {
 
     socket.on("locationUpdate", (users) => {
       setFriends(users);
+      console.log("Updated friends:", users);
     });
 
     return () => {

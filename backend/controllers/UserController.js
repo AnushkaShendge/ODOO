@@ -7,7 +7,8 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 const saveFakeCall = async (req, res) => {
     const { phone, name } = req.body;
-    const fakeCall = new FakeCall({ phone, name });
+    const userId = req.params.id;
+    const fakeCall = new FakeCall({ phone, name, userId });
     try {
         await fakeCall.save();
         res.status(201).json({ message: 'Fake call saved' });
@@ -18,7 +19,8 @@ const saveFakeCall = async (req, res) => {
 
 const getFakeCalls = async (req, res) => {
     try {
-        const fakeCalls = await FakeCall.find();
+        const userId = req.params.id; // Fixed: correctly get userId from params
+        const fakeCalls = await FakeCall.find({ userId: userId }); // Added userId in query
         res.json(fakeCalls);
     } catch (err) {
         res.status(500).json({ message: err.message });
