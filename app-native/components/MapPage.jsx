@@ -3,17 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-nati
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import io from "socket.io-client";
 
 const { width, height } = Dimensions.get("window");
+const socket = io("http://192.168.80.60:5000"); // Replace with your backend IP
 
 const MapPage = () => {
   const [location, setLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
-
-  // useEffect(() => {
-  //   checkLocationPermission();
-  // }, []);
+  const [friends, setFriends] = useState({});
+  const [locationInterval, setLocationInterval] = useState(null);
+  const userName = "JohnDoe"; // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
     let { status } = await Location.getForegroundPermissionsAsync();
@@ -44,18 +45,54 @@ const MapPage = () => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       });
+      return location.coords;
     } catch (error) {
       console.error("Error getting location:", error);
+      return null;
     }
   };
 
   const startTracking = () => {
     if (locationPermission) {
+      console.log("Started tracking");
       setIsTracking(true);
-      // Here you would implement the actual tracking functionality
-      // e.g., emitting location to a server periodically
+      const interval = setInterval(() => {
+        getCurrentLocation().then((loc) => {
+          if (loc) {
+            console.log(loc);
+            socket.emit("shareLocation", {
+              userName, // Using userName instead of userId
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            });
+          }
+        });
+      }, 5000); // Update location every 5 seconds
+
+      setLocationInterval(interval);
     }
   };
+
+  const stopTracking = () => {
+    console.log("Stopped tracking");
+    setIsTracking(false);
+    if (locationInterval) {
+      clearInterval(locationInterval);
+      setLocationInterval(null);
+    }
+  };
+
+  useEffect(() => {
+    socket.emit("joinRoom", userName); // Use username instead of userId
+
+    socket.on("locationUpdate", (users) => {
+      setFriends(users);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -87,7 +124,7 @@ const MapPage = () => {
 
           <TouchableOpacity
             style={styles.trackMeButton}
-            onPress={startTracking}
+            onPress={isTracking ? stopTracking : startTracking}
           >
             <Text style={styles.trackMeButtonText}>
               {isTracking ? "Stop tracking" : "Track me"}
@@ -99,26 +136,26 @@ const MapPage = () => {
           <View style={styles.locationIconContainer}>
             <Ionicons name="location-outline" size={50} color="black" />
           </View>
-          
+
           <Text style={styles.permissionTitle}>
             Location permission is not enabled.
           </Text>
-          
+
           <Text style={styles.permissionText}>
             Access to location is essential to locate you during emergencies.
           </Text>
-          
+
           <Text style={styles.permissionText}>
             Allowing location access to "allow all the time" lets the user be tracked even when the app's screen is closed.
           </Text>
-          
+
           <TouchableOpacity
             style={styles.enableButton}
             onPress={requestLocationPermission}
           >
             <Text style={styles.enableButtonText}>Enable</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.trackMeButtonDisabled}>
             <Text style={styles.trackMeButtonText}>Track me</Text>
           </TouchableOpacity>
