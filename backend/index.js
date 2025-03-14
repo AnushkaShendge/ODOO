@@ -8,10 +8,13 @@ const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const connectDB = require('./config/dbConn')
 const supabase = require('./config/supabaseConfig');
-
-
+const http = require("http");
+const {Server} = require("socket.io");
+const { initializeSocket } = require('./Sockets');
 
 connectDB();
+
+// const server = http.createServer(app);
 
 app.use(cors(corsOptions));
 
@@ -25,7 +28,12 @@ app.use('/api', require('./routes/authRoutes'));
 
 app.use('/api' , require('./routes/userRoutes') )
 
+const expressServer = app.listen(PORT,()=>console.log(`Server running on Port ${PORT}`));
 
-
-
-app.listen(PORT,()=>console.log(`Server running on Port ${PORT}`));
+const io = new Server(expressServer, {
+    cors: {
+      origin: "*",
+    },
+  });
+  
+initializeSocket(io);
