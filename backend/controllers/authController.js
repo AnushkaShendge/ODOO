@@ -3,10 +3,10 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const registerUser = async (req, res) => {
-    const { email, password , phone } = req.body;
+    const {name ,  email, password , phone } = req.body;
     console.log(req.body);
     // Check if name, email, password, and role are provided
-    if (!email || !password || !phone) {
+    if (!name || !email || !password || !phone) {
       return res.status(400).json({ message: 'All fields are required' });
     }
   
@@ -15,6 +15,7 @@ const registerUser = async (req, res) => {
       // Register Student and other approved roles directly
 
         const user = new User({
+          name,
           email,
           password: await bcrypt.hash(password, 10),
           phone
@@ -46,6 +47,7 @@ const loginUser = async (req, res) => {
         const accessToken = jwt.sign(
             { UserInfo: { 
                 id: user._id, 
+                name: user.name,
                 email: user.email, 
                 
             } },

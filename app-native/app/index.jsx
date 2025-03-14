@@ -23,6 +23,7 @@ const SignUpScreen = () => {
   const [callingCode, setCallingCode] = useState('91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [name , setName] = useState('');
   const [password, setPassword] = useState('');
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
@@ -99,7 +100,16 @@ const SignUpScreen = () => {
       {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title}>Sign Up</Text>
-        
+        <Text style={styles.inputLabel}>Enter your Username</Text>
+        <View style={styles.emailInputContainer}>
+          <TextInput
+            style={styles.emailInput}
+            placeholder="Enter username"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="none"
+          />
+        </View>
         {/* Email Input */}
         <Text style={styles.inputLabel}>Enter your email</Text>
         <View style={styles.emailInputContainer}>
