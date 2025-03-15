@@ -13,7 +13,7 @@ const initializeSocket = (io) => {
         // Receive location updates and send them to friends' rooms
         socket.on("shareLocation", async (data) => {
             console.log(data);
-            // const { username, latitude, longitude } = data;
+            const { userName:username, latitude, longitude } = data;
             // Fetch friends from backend (Assume DB call)
             const friends = await getFriendsFromDatabase(username);
 

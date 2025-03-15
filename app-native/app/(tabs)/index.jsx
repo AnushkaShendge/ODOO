@@ -1,19 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   StatusBar,
-  Dimensions
+  Dimensions,
+  ToastAndroid
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapPage from '../../components/MapPage';
 import Header from '../../components/Header';
+import LocationSharingBox from '../../components/LocationSharingBox';
+import { useSocket } from '../../components/SocketContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function TrackMeScreen() {
+  const [sharingUsers, setSharingUsers] = useState({});
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("locationUpdate", (data) => {
+      setSharingUsers(prev => ({
+        ...prev,
+        [data.username]: data
+      }));
+      
+      // Show toast notification
+      ToastAndroid.show(
+        `${data.username} is sharing their location`,
+        ToastAndroid.SHORT
+      );
+    });
+
+    return () => {
+      if (socket) {
+        socket.off("locationUpdate");
+      }
+    };
+  }, [socket]);
+
   return (
     <View style={styles.container}>
       <View style={styles.safeArea} />
@@ -29,18 +58,30 @@ export default function TrackMeScreen() {
         </Text>
       </View>
       
-      {/* Add Friend Section */}
-      <View style={styles.addFriendSection}>
-        <View>
-          <Text style={styles.addFriendTitle}>Add Friend</Text>
-          <Text style={styles.addFriendSubtitle}>
-            Add a friend to use SOS and Track me
-          </Text>
+      {/* Replace add friend section with location sharing boxes when available */}
+      {Object.keys(sharingUsers).length > 0 ? (
+        <View style={styles.sharingSection}>
+          {Object.entries(sharingUsers).map(([username, data]) => (
+            <LocationSharingBox 
+              key={username}
+              sharingUser={username}
+              location={data}
+            />
+          ))}
         </View>
-        <TouchableOpacity style={styles.addFriendsButton}>
-          <Text style={styles.addFriendsButtonText}>Add friends</Text>
-        </TouchableOpacity>
-      </View>
+      ) : (
+        <View style={styles.addFriendSection}>
+          <View>
+            <Text style={styles.addFriendTitle}>Add Friend</Text>
+            <Text style={styles.addFriendSubtitle}>
+              Add a friend to use SOS and Track me
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.addFriendsButton}>
+            <Text style={styles.addFriendsButtonText}>Add friends</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
       {/* Map View */}
       <View style={styles.mapContainer}>
@@ -133,5 +174,10 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
+  },
+  sharingSection: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
 });
