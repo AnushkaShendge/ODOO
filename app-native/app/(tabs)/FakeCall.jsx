@@ -24,7 +24,7 @@ const FakeCallScreen = () => {
   const [calls, setCalls] = useState([]);
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
-  const url = 'http://192.168.31.15:5000';
+  const url = 'http://192.168.112.55:5000';
   const router = useRouter();
 
   useEffect(() => {
