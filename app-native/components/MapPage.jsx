@@ -4,9 +4,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import io from "socket.io-client";
-
+import { useSocket } from "../components/SocketContext";
 const { width, height } = Dimensions.get("window");
-const socket = io("http://192.168.80.60:5000"); // Replace with your backend IP
 
 const MapPage = () => {
   const [location, setLocation] = useState(null);
@@ -14,6 +13,7 @@ const MapPage = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
+  const { socket } = useSocket();
   const userName = "JohnDoe"; // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
@@ -53,12 +53,12 @@ const MapPage = () => {
   };
 
   const startTracking = () => {
-    if (locationPermission) {
+    if (locationPermission && socket) { // Add socket check
       console.log("Started tracking");
       setIsTracking(true);
       const interval = setInterval(() => {
         getCurrentLocation().then((loc) => {
-          if (loc) {
+          if (loc && socket) {
             console.log(loc);
             socket.emit("shareLocation", {
               userName, // Using userName instead of userId
@@ -83,6 +83,8 @@ const MapPage = () => {
   };
 
   useEffect(() => {
+    if (!socket) return; // Add null check
+
     socket.emit("joinRoom", userName); // Use username instead of userId
 
     socket.on("locationUpdate", (users) => {
@@ -90,9 +92,11 @@ const MapPage = () => {
     });
 
     return () => {
-      socket.disconnect();
+      if (socket) {
+        socket.off("locationUpdate");
+      }
     };
-  }, []);
+  }, [socket]); // Add socket as dependency
 
   return (
     <View style={styles.container}>

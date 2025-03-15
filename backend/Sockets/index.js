@@ -12,8 +12,8 @@ const initializeSocket = (io) => {
 
         // Receive location updates and send them to friends' rooms
         socket.on("shareLocation", async (data) => {
-            const { username, latitude, longitude } = data;
-
+            console.log(data);
+            // const { username, latitude, longitude } = data;
             // Fetch friends from backend (Assume DB call)
             const friends = await getFriendsFromDatabase(username);
 
@@ -41,7 +41,7 @@ const initializeSocket = (io) => {
 // Mock function to fetch friends (Replace with DB call)
 const getFriendsFromDatabase = async (username) => {
     // Assume we have a database call that fetches friend IDs of the user
-    return ["friend1", "friend2", "friend3"]; // Replace with actual friend IDs
+    return ["Anushka"]; // Replace with actual friend IDs
 };
 
 module.exports = { initializeSocket };

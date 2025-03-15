@@ -15,7 +15,11 @@ const SHAKE_THRESHOLD = 12;
 const UPDATE_INTERVAL = 100;
 
 export default function TabLayout() {
-  const [friends, setFriends] = useState([]);
+  const [friends, setFriends] = useState([{
+    "id":"2",
+    "name":"anushka",
+    "phone":"7977409706"
+  }]);
   const lastAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const lastShakeTime = useRef(0);
 
