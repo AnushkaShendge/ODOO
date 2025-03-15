@@ -19,6 +19,7 @@ import { Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { useRouter } from 'expo-router';
 
 const RecordingsScreen = () => {
   const navigation = useNavigation();
@@ -30,9 +31,11 @@ const RecordingsScreen = () => {
   const [waveformAnimation] = useState(new Animated.Value(0));
   const [hasPermission, setHasPermission] = useState(null);
   const [savedRecordings, setSavedRecordings] = useState([]);
+  const router = useRouter();
   
   // Create app directory for storing recordings
   const APP_DIRECTORY = FileSystem.documentDirectory + 'recordings/';
+  const API_URL = 'http://192.168.112.55:5000'
   
   // Ensure directory exists
   useEffect(() => {
@@ -40,10 +43,11 @@ const RecordingsScreen = () => {
       const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(APP_DIRECTORY, { intermediates: true });
-        console.log('Created recordings directory at:', APP_DIRECTORY);
       }
+      console.log('Recordings directory location:', APP_DIRECTORY);
+      // Print the full path for debugging
+      console.log('Full directory path:', await FileSystem.getInfoAsync(APP_DIRECTORY));
       
-      // Load existing recordings
       loadSavedRecordings();
     };
     
@@ -52,32 +56,25 @@ const RecordingsScreen = () => {
     });
   }, []);
   
-  // Function to load saved recordings
+  // Function to load saved recordings from local storage
   const loadSavedRecordings = async () => {
     try {
-      const files = await FileSystem.readDirectoryAsync(APP_DIRECTORY);
-      const recordings = [];
+      setLoading(true);
+      const recordingsMetadataFile = APP_DIRECTORY + 'metadata.json';
+      const metadataInfo = await FileSystem.getInfoAsync(recordingsMetadataFile);
       
-      for (const file of files) {
-        if (file.endsWith('.m4a')) {
-          // Extract date from filename (assuming format: recording-TIMESTAMP.m4a)
-          const timestamp = file.split('-')[1]?.split('.')[0];
-          const date = timestamp ? new Date(parseInt(timestamp)).toLocaleDateString() : 'Unknown date';
-          
-          recordings.push({
-            id: file,
-            uri: APP_DIRECTORY + file,
-            date,
-            duration: '00:00', // You could store/calculate actual duration if needed
-            type: 'audio'
-          });
-        }
+      if (metadataInfo.exists) {
+        const metadataContent = await FileSystem.readAsStringAsync(recordingsMetadataFile);
+        const metadata = JSON.parse(metadataContent);
+        setSavedRecordings(metadata);
+      } else {
+        await FileSystem.writeAsStringAsync(recordingsMetadataFile, JSON.stringify([]));
+        setSavedRecordings([]);
       }
-      
-      setSavedRecordings(recordings);
-      setLoading(false);
     } catch (error) {
-      console.log('Error loading recordings:', error);
+      console.error('Error loading recordings:', error);
+      alert('Failed to load recordings');
+    } finally {
       setLoading(false);
     }
   };
@@ -117,6 +114,43 @@ const RecordingsScreen = () => {
       }
     };
   }, []);
+  const uploadRecording = async (audioUri, metadata) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: audioUri,
+        type: 'audio/m4a',
+        name: 'recording.m4a'
+      });
+      formData.append('metadata', JSON.stringify(metadata));
+  
+      const response = await fetch(`${API_URL}/api/recordings`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      if (!response.ok) throw new Error('Upload failed');
+      return await response.json();
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      throw error;
+    }
+  };
+  
+  const fetchRecordings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/recordings`);
+      if (!response.ok) throw new Error('Failed to fetch recordings');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching recordings:', error);
+      throw error;
+    }
+  };
+  
 
   // Animate recording waveform
   useEffect(() => {
@@ -182,41 +216,60 @@ const RecordingsScreen = () => {
     }
   };
 
-  // Stop recording function
+  // Modified stop recording function
   const stopRecording = async () => {
     try {
       if (recording) {
         await recording.stopAndUnloadAsync();
-        const tempUri = recording.getURI();
+        const uri = recording.getURI();
         
-        // Create a permanent filename
-        const newFilename = getRecordingFilename();
-        const newUri = APP_DIRECTORY + newFilename;
+        // Get recording duration
+        const { sound } = await Audio.Sound.createAsync({ uri });
+        const status = await sound.getStatusAsync();
+        await sound.unloadAsync();
         
-        // Copy from temp location to our app directory
-        await FileSystem.copyAsync({
-          from: tempUri,
+        // Format duration
+        const totalSeconds = Math.floor(status.durationMillis / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Save recording locally
+        const fileName = getRecordingFilename();
+        const newUri = APP_DIRECTORY + fileName;
+        
+        await FileSystem.moveAsync({
+          from: uri,
           to: newUri
         });
         
-        // Delete the original temp file
-        try {
-          await FileSystem.deleteAsync(tempUri);
-        } catch (e) {
-          console.log('Could not delete temp file (this is usually fine)', e);
-        }
-        
-        // Save recording to state
+        // Create recording metadata
         const newRecording = {
-          id: newFilename,
+          id: Date.now().toString(),
           uri: newUri,
-          date: new Date().toLocaleDateString(),
-          duration: '00:00', // You can calculate actual duration if needed
-          type: 'audio'
+          date: new Date().toISOString(),
+          duration: formattedDuration,
+          fileName
         };
         
-        setSavedRecordings(prev => [...prev, newRecording]);
-        console.log('Recording saved at', newUri);
+        // Update metadata file
+        const recordingsMetadataFile = APP_DIRECTORY + 'metadata.json';
+        const metadataInfo = await FileSystem.getInfoAsync(recordingsMetadataFile);
+        
+        let updatedRecordings = [newRecording];
+        if (metadataInfo.exists) {
+          const metadataContent = await FileSystem.readAsStringAsync(recordingsMetadataFile);
+          const currentMetadata = JSON.parse(metadataContent);
+          updatedRecordings = [...currentMetadata, newRecording];
+        }
+        
+        await FileSystem.writeAsStringAsync(
+          recordingsMetadataFile, 
+          JSON.stringify(updatedRecordings)
+        );
+        
+        setSavedRecordings(updatedRecordings);
+        alert(`Recording saved! Duration: ${formattedDuration}`);
       }
       
       if (photoInterval) {
@@ -228,12 +281,12 @@ const RecordingsScreen = () => {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
       });
-      
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      alert('Failed to save recording: ' + error.message);
+    } finally {
       setRecording(null);
       setIsRecording(false);
-    } catch (error) {
-      console.log('Error stopping recording:', error);
-      alert('Error saving recording: ' + error.message);
     }
   };
   
@@ -257,9 +310,20 @@ const RecordingsScreen = () => {
 
   // Navigate to recording history
   const handleHistoryPress = () => {
-    navigation.navigate('RecordingHistory', { recordings: savedRecordings });
+    console.log('Passing recordings:', savedRecordings); // Debug log
+    
+    // Convert the recordings array to a JSON string
+    const recordingsJSON = JSON.stringify(savedRecordings.map(recording => ({
+      ...recording,
+      // Ensure URI is properly set
+      uri: recording.uri.startsWith('file://') ? recording.uri : `file://${recording.uri}`
+    })));
+    
+    router.push({
+      pathname: '/RecordingHistory',
+      params: { recordings: recordingsJSON }
+    });
   };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
