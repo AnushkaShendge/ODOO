@@ -20,6 +20,7 @@ import {
   FontAwesome
 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Header from '../../components/Header';
 
 const HelpScreen = () => {
   const router = useRouter();
@@ -29,20 +30,7 @@ const HelpScreen = () => {
       <View style={styles.safeArea} />
       
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <FontAwesome5 name="dove" size={24} color="#F94989" />
-          <Text style={styles.headerTitle}>I'M SAFE</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.bellButton}>
-            <Ionicons name="notifications-outline" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuButton}>
-            <Ionicons name="menu" size={28} color="#333" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
       
       <ScrollView style={styles.contentContainer}>
         {/* Ask for help section */}
@@ -175,12 +163,6 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  bellButton: {
-    marginRight: 15,
-  },
-  menuButton: {
-    
   },
   contentContainer: {
     flex: 1,

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapPage from '../../components/MapPage';
+import Header from '../../components/Header';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,22 +19,7 @@ export default function TrackMeScreen() {
       <View style={styles.safeArea} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          <View style={styles.logoIconContainer}>
-            <Ionicons name="heart" size={24} color="#FF4F93" />
-          </View>
-          <Text style={styles.logoText}>I'M SAFE</Text>
-        </View>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color="black" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="menu" size={28} color="black" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
 
       {/* Title Section */}
       <View style={styles.titleSection}>
