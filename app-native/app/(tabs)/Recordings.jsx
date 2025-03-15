@@ -7,74 +7,268 @@ import {
   TouchableOpacity, 
   StatusBar, 
   ActivityIndicator, 
-  FlatList 
+  FlatList,
+  Animated,
+  Platform,
+  Share
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import Header from '../../components/Header';
+import { Audio } from 'expo-av';
+import { Camera } from 'expo-camera';
+import { useNavigation } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const RecordingsScreen = () => {
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+  const [photoInterval, setPhotoInterval] = useState(null);
+  const [waveformAnimation] = useState(new Animated.Value(0));
+  const [hasPermission, setHasPermission] = useState(null);
+  const [savedRecordings, setSavedRecordings] = useState([]);
   
-  // Sample recording data
-  const [recordings, setRecordings] = useState([
-    {
-      id: '1',
-      date: '13/03/2025',
-      duration: '13 secs',
-    },
-    // More recordings can be added here
-  ]);
+  // Create app directory for storing recordings
+  const APP_DIRECTORY = FileSystem.documentDirectory + 'recordings/';
+  
+  // Ensure directory exists
+  useEffect(() => {
+    const setupDirectory = async () => {
+      const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(APP_DIRECTORY, { intermediates: true });
+        console.log('Created recordings directory at:', APP_DIRECTORY);
+      }
+      
+      // Load existing recordings
+      loadSavedRecordings();
+    };
+    
+    setupDirectory().catch(error => {
+      console.log('Error setting up directory:', error);
+    });
+  }, []);
+  
+  // Function to load saved recordings
+  const loadSavedRecordings = async () => {
+    try {
+      const files = await FileSystem.readDirectoryAsync(APP_DIRECTORY);
+      const recordings = [];
+      
+      for (const file of files) {
+        if (file.endsWith('.m4a')) {
+          // Extract date from filename (assuming format: recording-TIMESTAMP.m4a)
+          const timestamp = file.split('-')[1]?.split('.')[0];
+          const date = timestamp ? new Date(parseInt(timestamp)).toLocaleDateString() : 'Unknown date';
+          
+          recordings.push({
+            id: file,
+            uri: APP_DIRECTORY + file,
+            date,
+            duration: '00:00', // You could store/calculate actual duration if needed
+            type: 'audio'
+          });
+        }
+      }
+      
+      setSavedRecordings(recordings);
+      setLoading(false);
+    } catch (error) {
+      console.log('Error loading recordings:', error);
+      setLoading(false);
+    }
+  };
+
+  const requestPermissions = async () => {
+    try {
+      const { status: cameraStatus } = await Camera.getCameraPermissionsAsync();
+      if (cameraStatus !== 'granted') {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          alert('Camera permission is required');
+          return false;
+        }
+      }
+
+      const { status: audioStatus } = await Audio.requestPermissionsAsync();
+      if (audioStatus !== 'granted') {
+        alert('Audio permission is required');
+        return false;
+      }
+
+      setHasPermission(true);
+      return true;
+    } catch (error) {
+      console.log('Error requesting permissions:', error);
+      alert('Error requesting permissions: ' + error.message);
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-      setRecordings(prevRecordings => [
-        ...prevRecordings,
-        {
-          id: '2',
-          date: '12/03/2025',
-          duration: '45 secs',
-        },
-        {
-          id: '3',
-          date: '10/03/2025',
-          duration: '2 mins 15 secs',
-        },
-        {
-          id: '4',
-          date: '08/03/2025',
-          duration: '35 secs',
-        },
-      ]);
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    requestPermissions();
+    return () => {
+      // Cleanup if needed
+      if (recording) {
+        recording.stopAndUnloadAsync();
+      }
+    };
   }, []);
 
-  const renderRecordingItem = ({ item }) => (
-    <TouchableOpacity style={styles.recordingItem}>
-      <View style={styles.recordingItemContent}>
-        <View style={styles.recordingIconContainer}>
-          <FontAwesome5 name="video" size={22} color="white" />
-        </View>
-        <View style={styles.recordingDetails}>
-          <Text style={styles.recordingTitle}>Recorded On</Text>
-          <Text style={styles.recordingDate}>{item.date}{' '}
-            <Text style={styles.recordingDuration}>Lasted for {item.duration}</Text>
-          </Text>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#999" />
-    </TouchableOpacity>
-  );
+  // Animate recording waveform
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(waveformAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+          Animated.timing(waveformAnimation, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+        ])
+      ).start();
+    } else {
+      waveformAnimation.setValue(0);
+    }
+  }, [isRecording]);
+
+  // Generate a filename for the recording
+  const getRecordingFilename = () => {
+    const timestamp = Date.now();
+    return `recording-${timestamp}.m4a`;
+  };
+
+  // Start recording function
+  const startRecording = async () => {
+    if (!hasPermission) {
+      const granted = await requestPermissions();
+      if (!granted) {
+        alert('Camera and audio permissions are required');
+        return;
+      }
+    }
+    
+    try {
+      // Configure audio recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      
+      // Start audio recording
+      const { recording: audioRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(audioRecording);
+      
+      // Take photos every 5 seconds
+      const interval = setInterval(() => {
+        console.log('Would take photo here if camera was available');
+      }, 5000);
+      
+      setPhotoInterval(interval);
+      setIsRecording(true);
+    } catch (error) {
+      console.log('Error starting recording:', error);
+      alert('Failed to start recording: ' + error.message);
+    }
+  };
+
+  // Stop recording function
+  const stopRecording = async () => {
+    try {
+      if (recording) {
+        await recording.stopAndUnloadAsync();
+        const tempUri = recording.getURI();
+        
+        // Create a permanent filename
+        const newFilename = getRecordingFilename();
+        const newUri = APP_DIRECTORY + newFilename;
+        
+        // Copy from temp location to our app directory
+        await FileSystem.copyAsync({
+          from: tempUri,
+          to: newUri
+        });
+        
+        // Delete the original temp file
+        try {
+          await FileSystem.deleteAsync(tempUri);
+        } catch (e) {
+          console.log('Could not delete temp file (this is usually fine)', e);
+        }
+        
+        // Save recording to state
+        const newRecording = {
+          id: newFilename,
+          uri: newUri,
+          date: new Date().toLocaleDateString(),
+          duration: '00:00', // You can calculate actual duration if needed
+          type: 'audio'
+        };
+        
+        setSavedRecordings(prev => [...prev, newRecording]);
+        console.log('Recording saved at', newUri);
+      }
+      
+      if (photoInterval) {
+        clearInterval(photoInterval);
+        setPhotoInterval(null);
+      }
+      
+      // Reset audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+      
+      setRecording(null);
+      setIsRecording(false);
+    } catch (error) {
+      console.log('Error stopping recording:', error);
+      alert('Error saving recording: ' + error.message);
+    }
+  };
+  
+  // Share/export a recording
+  const shareRecording = async (recordingUri) => {
+    try {
+      if (Platform.OS === 'android') {
+        const shareResult = await Share.share({
+          url: recordingUri,
+          title: 'Share Recording'
+        });
+      } else {
+        // iOS
+        await Sharing.shareAsync(recordingUri);
+      }
+    } catch (error) {
+      console.log('Error sharing recording:', error);
+      alert('Could not share recording');
+    }
+  };
+
+  // Navigate to recording history
+  const handleHistoryPress = () => {
+    navigation.navigate('RecordingHistory', { recordings: savedRecordings });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View style={styles.safeArea} />
       {/* Header */}
+      <Header />
       <View style={styles.header}>
         <View style={styles.safeArea} />
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
@@ -82,21 +276,64 @@ const RecordingsScreen = () => {
           <Text style={styles.headerSubtitle}>Detailed history of the recorded event</Text>
         </View>
       </View>
+
+      {/* Corrected Recording History Button */}
+      <TouchableOpacity 
+        style={styles.historyButton}
+        onPress={handleHistoryPress}
+      >
+        <View style={styles.recordingItemContent}>
+          <View style={styles.recordingIconContainer}>
+            <FontAwesome5 name="history" size={22} color="white" />
+          </View>
+          <View style={styles.recordingDetails}>
+            <Text style={styles.historyButtonText}>Recording History</Text>
+            <Text style={styles.recordingCount}>{savedRecordings.length} recordings saved</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="#999" />
+      </TouchableOpacity>
       
-      <FlatList
-        data={recordings}
-        renderItem={renderRecordingItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        ListFooterComponent={
-          loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#694fad" />
-              <Text style={styles.loadingText}>Loading previous history.</Text>
-            </View>
-          ) : null
-        }
-      />
+      <View style={styles.mainContent}>
+        {/* Recording Waveform Visualization */}
+        {isRecording && (
+          <View style={styles.waveformContainer}>
+            {[...Array(5)].map((_, index) => (
+              <Animated.View 
+                key={index}
+                style={[
+                  styles.waveformLine,
+                  { 
+                    height: waveformAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 40 + index * 5]
+                    })
+                  }
+                ]}
+              />
+            ))}
+          </View>
+        )}
+        
+        {/* Record Button */}
+        <TouchableOpacity
+          style={[styles.recordButton, isRecording ? styles.recordingButtonActive : {}]}
+          onPress={isRecording ? stopRecording : startRecording}
+        >
+          <View style={[styles.recordIcon, isRecording ? styles.recordingActive : styles.recordingInactive]}>
+          </View>
+          <Text style={styles.recordButtonText}>
+            {isRecording ? "Stop Recording" : "Start Recording"}
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Storage location info */}
+        <View style={styles.storageInfo}>
+          <Text style={styles.storageText}>
+            Recordings saved to app's document directory
+          </Text>
+        </View>
+      </View>
       
       {/* Bottom Indicator */}
       <View style={styles.bottomIndicator} />
@@ -137,11 +374,8 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  recordingItem: {
+  // Updated styles for recording history button
+  historyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -149,8 +383,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0f0f0',
     borderRadius: 12,
+    marginHorizontal: 16,
     marginTop: 16,
     paddingHorizontal: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  historyButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000',
+  },
+  recordingCount: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   recordingItemContent: {
     flexDirection: 'row',
@@ -168,29 +414,38 @@ const styles = StyleSheet.create({
   recordingDetails: {
     flex: 1,
   },
-  recordingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
+  mainContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  recordingDate: {
-    fontSize: 14,
-    color: '#000',
-    marginTop: 4,
-  },
-  recordingDuration: {
-    color: '#999',
-  },
-  loadingContainer: {
+  recordButton: {
+    backgroundColor: 'black',
+    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
   },
-  loadingText: {
-    marginLeft: 12,
-    color: '#999',
-    fontSize: 14,
+  recordingButtonActive: {
+    backgroundColor: '#d32f2f',
+  },
+  recordIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  recordingInactive: {
+    backgroundColor: '#f44336', // Red
+  },
+  recordingActive: {
+    backgroundColor: '#ffffff', // White
+  },
+  recordButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '500',
   },
   bottomIndicator: {
     height: 5,
@@ -200,6 +455,31 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 10,
     marginTop: 5,
+  },
+  // New styles for recording visualization
+  waveformContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    height: 60,
+  },
+  waveformLine: {
+    width: 4,
+    marginHorizontal: 4,
+    backgroundColor: '#f44336',
+    borderRadius: 2,
+  },
+  storageInfo: {
+    position: 'absolute',
+    bottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  storageText: {
+    color: '#999',
+    fontSize: 12,
+    textAlign: 'center',
   },
 });
 

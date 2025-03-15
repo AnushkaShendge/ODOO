@@ -1,3 +1,4 @@
+
 import { Tabs } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, Alert, Linking, Vibration } from 'react-native';
@@ -49,43 +50,23 @@ export default function TabLayout() {
       }
 
       const { data } = await Contacts.getContactsAsync({
-        fields: [
-          Contacts.Fields.PhoneNumbers,
-          Contacts.Fields.ContactType,
-          Contacts.Fields.Labels,
-          Contacts.Fields.Notes
-        ],
+        fields: [Contacts.Fields.PhoneNumbers],
       });
 
-      const emergencyContacts = data
-        .filter(contact => {
-          // Filter for contacts that:
-          // 1. Have phone numbers
-          // 2. Have "emergency" in their notes or labels (case insensitive)
-          // 3. Or are marked with a specific label/type that indicates emergency
-          return contact.phoneNumbers 
-            && contact.phoneNumbers.length > 0 
-            && (
-              (contact.notes && contact.notes.toLowerCase().includes('emergency'))
-              || (contact.contactType && contact.contactType.toLowerCase().includes('emergency'))
-              || (contact.labels && contact.labels.some(label => 
-                  label.toLowerCase().includes('emergency')
-                ))
-            );
-        })
+      const realContacts = data
+        .filter(contact => contact.phoneNumbers && contact.phoneNumbers.length > 0)
         .map(contact => ({
           id: contact.id,
           name: contact.name,
           phone: contact.phoneNumbers[0].number,
         }));
 
-      // If no emergency contacts found, use dummy contact
-      const contacts = emergencyContacts.length > 0 ? emergencyContacts : [dummyContact];
-      setFriends(contacts);
-      console.log('Fetched emergency contacts:', contacts);
+      // Ensure at least the dummy contact is present
+      setFriends([dummyContact, ...realContacts]);
+      console.log('Fetched contacts:', [dummyContact, ...realContacts]);
 
     } catch (error) {
-      console.error('Error fetching emergency contacts:', error);
+      console.error('Error fetching contacts:', error);
       setFriends([{ id: '1', name: 'Emergency Contact 1', phone: '9152602555' }]);
     }
   };
@@ -147,7 +128,6 @@ return (
       },
     }}
   >
-    
     <Tabs.Screen
       name="index"
       options={{
@@ -207,18 +187,7 @@ return (
         ),
       }}
     />
-    <Tabs.Screen
-      name="MapPage"
-      options={{
-        title: '',
-        tabBarIcon: ({ color }) => (
-          <View style={styles.tabItem}>
-            <Ionicons name="help-circle" size={24} color="black" />
-            <Text style={styles.tabLabel} >Help</Text>
-          </View>
-        ),
-      }}
-    />
+    
   </Tabs>
 );
 }
@@ -266,3 +235,5 @@ sosText: {
   fontSize: 16,
 },
 });
+
+

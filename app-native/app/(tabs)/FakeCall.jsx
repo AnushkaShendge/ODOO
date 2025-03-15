@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Header from '../../components/Header';
 
 const FakeCallScreen = () => {
   const [callerName, setCallerName] = useState('');
@@ -132,16 +133,7 @@ const FakeCallScreen = () => {
     <View style={styles.container}>
       <View style={styles.safeArea} />
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          <Icon name="favorite" size={30} color="#FF4F93" />
-          <Text style={styles.logoText}>I'M SAFE</Text>
-        </View>
-        <View style={styles.headerIcons}>
-          <Ionicons name="notifications-outline" size={24} color="black" />
-          <Icon name="menu" size={30} color="black" style={styles.menuIcon} />
-        </View>
-      </View>
+      <Header />
 
       {/* Main Content */}
       <View style={styles.content}>
