@@ -89,6 +89,7 @@ const MapPage = () => {
 
     socket.on("locationUpdate", (users) => {
       setFriends(users);
+      console.log("Updated friends:", users);
     });
 
     return () => {

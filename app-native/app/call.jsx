@@ -3,158 +3,205 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  Image, 
   TouchableOpacity, 
-  StatusBar 
+  StatusBar, 
+  SafeAreaView 
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { 
+  MaterialIcons, 
+  Ionicons, 
+  Feather, 
+  FontAwesome 
+} from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const CallScreen = () => {
-  const params = useLocalSearchParams();
-  const { name = 'Unknown', phone = '' } = params;
-  
-  const [callStatus, setCallStatus] = useState('ringing');
   const [callTime, setCallTime] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaker, setIsSpeaker] = useState(false);
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { name, phone } = params;
 
   useEffect(() => {
-    // Simulate call being answered after 3 seconds
-    const answerTimer = setTimeout(() => {
-      setCallStatus('ongoing');
-      startCallTimer();
-    }, 3000);
-
-    return () => clearTimeout(answerTimer);
-  }, []);
-
-  const startCallTimer = () => {
     const timer = setInterval(() => {
       setCallTime(prevTime => prevTime + 1);
     }, 1000);
-
     return () => clearInterval(timer);
-  };
+  }, []);
 
-  const formatCallTime = (seconds) => {
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const toggleMute = () => setIsMuted(!isMuted);
-  const toggleSpeaker = () => setIsSpeaker(!isSpeaker);
-  const endCall = () => {
-    // Add navigation back to the call list screen
+  const handleEndCall = () => {
+    router.back();
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Caller Info */}
-      <View style={styles.callerInfoContainer}>
-        <View style={styles.callerAvatar}>
-          <Text style={styles.callerInitial}>{name.charAt(0)}</Text>
+    
+
+      <View style={styles.callerContainer}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Feather name="user" size={40} color="#003366" />
+          </View>
         </View>
+        
         <Text style={styles.callerName}>{name}</Text>
-        <Text style={styles.callerStatus}>
-          {callStatus === 'ringing' ? 'Calling...' : formatCallTime(callTime)}
-        </Text>
+        <Text style={styles.callerNumber}>{phone}</Text>
+        <Text style={styles.callTimer}>{formatTime(callTime)}</Text>
       </View>
-      
-      {/* Call Controls */}
-      <View style={styles.controlsContainer}>
-        <View style={styles.controlsRow}>
-          <TouchableOpacity style={styles.controlButton} onPress={toggleMute}>
-            <FontAwesome name={isMuted ? "microphone-slash" : "microphone"} size={24} color="white" />
-            <Text style={styles.controlText}>Mute</Text>
+
+      <View style={styles.actionsContainer}>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="person" size={24} color="white" />
+            <Text style={styles.actionText}>Record</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.controlButton} onPress={toggleSpeaker}>
-            <FontAwesome 
-              name="volume-up" 
-              size={24} 
-              color={isSpeaker ? "#4CAF50" : "white"} 
-            />
-            <Text style={styles.controlText}>Speaker</Text>
+          <TouchableOpacity style={styles.actionButton}>
+            <Feather name="video" size={24} color="white" />
+            <Text style={styles.actionText}>Video</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.controlButton}>
-            <FontAwesome name="keyboard" size={24} color="white" />
-            <Text style={styles.controlText}>Keypad</Text>
+          <TouchableOpacity style={styles.actionButton}>
+            <Feather name="plus" size={24} color="white" />
+            <Text style={styles.actionText}>Add call</Text>
           </TouchableOpacity>
         </View>
         
-        <TouchableOpacity style={styles.endCallButton} onPress={endCall}>
-          <FontAwesome name="phone" size={28} color="white" />
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="volume-high" size={24} color="white" />
+            <Text style={styles.actionText}>Speaker</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <Feather name="grid" size={24} color="white" />
+            <Text style={styles.actionText}>Dialpad</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <Feather name="mic-off" size={24} color="white" />
+            <Text style={styles.actionText}>Mute</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.endCallContainer}>
+          <TouchableOpacity style={styles.endCallButton} onPress={handleEndCall}>
+            <Feather name="phone" size={32} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+
+      <View style={styles.homeIndicator}>
+        <View style={styles.homeIndicatorBar} />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#000000',
+  },
+  statusBar: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 5,
   },
-  callerInfoContainer: {
+  timeText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  iconRow: {
+    flexDirection: 'row',
+  },
+  batteryRow: {
+    flexDirection: 'row',
+  },
+  statusIcon: {
+    marginHorizontal: 4,
+  },
+  callerContainer: {
+    flex: 0.4,
     alignItems: 'center',
-    marginTop: 100,
-  },
-  callerAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FF4F93',
     justifyContent: 'center',
+  },
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E3F2FD',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
   },
-  callerInitial: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    color: 'white',
+  avatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   callerName: {
-    fontSize: 28,
-    fontWeight: 'bold',
     color: 'white',
+    fontSize: 32,
     marginBottom: 10,
   },
-  callerStatus: {
-    fontSize: 16,
-    color: '#BBBBBB',
+  callerNumber: {
+    color: 'white',
+    fontSize: 18,
+    marginBottom: 15,
   },
-  controlsContainer: {
-    padding: 20,
-    paddingBottom: 50,
+  callTimer: {
+    color: 'white',
+    fontSize: 18,
   },
-  controlsRow: {
+  actionsContainer: {
+    flex: 0.6,
+    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
+    paddingBottom: 40,
+  },
+  actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 40,
+    marginBottom: 30,
   },
-  controlButton: {
+  actionButton: {
     alignItems: 'center',
+    width: 80,
   },
-  controlText: {
+  actionText: {
     color: 'white',
     marginTop: 8,
+    fontSize: 14,
+  },
+  endCallContainer: {
+    alignItems: 'center',
+    marginTop: 20,
   },
   endCallButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FF4F4F',
-    justifyContent: 'center',
+    backgroundColor: '#FF3B30',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
-    alignSelf: 'center',
-    transform: [{ rotate: '135deg' }],
+    justifyContent: 'center',
+  },
+  homeIndicator: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  homeIndicatorBar: {
+    width: 134,
+    height: 5,
+    backgroundColor: 'white',
+    borderRadius: 3,
   },
 });
 

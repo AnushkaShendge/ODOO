@@ -14,6 +14,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FakeCallScreen = () => {
   const [callerName, setCallerName] = useState('');
@@ -31,7 +32,12 @@ const FakeCallScreen = () => {
 
   const fetchCalls = async() => {
     try {
-      const response = await fetch(`${url}/api/get`, {
+      const userStr = await AsyncStorage.getItem('userData');
+      const user = JSON.parse(userStr);
+      if (!user || !user._id) {
+        throw new Error('User data not found');
+      }
+      const response = await fetch(`${url}/api/get/${user._id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -49,7 +55,12 @@ const FakeCallScreen = () => {
 
   const handleSetCaller = async() => {
     try {
-      const response = await fetch(`${url}/api/save`, {
+      const userStr = await AsyncStorage.getItem('userData');
+      const user = JSON.parse(userStr);
+      if (!user || !user._id) {
+        throw new Error('User data not found');
+      }
+      const response = await fetch(`${url}/api/save/${user._id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,12 +70,11 @@ const FakeCallScreen = () => {
       if (!response.ok) {
         throw new Error('Failed to save caller details');
       }
-      // Refresh the calls list after adding a new contact
       fetchCalls();
-      // Set the newly added contact as selected
       setSelectedContact({ name: callerName, phone: callerPhone });
     } catch (e) {
       console.error('Error saving caller:', e);
+      alert('Failed to save caller details');
     }
     setFormModalVisible(false);
   };

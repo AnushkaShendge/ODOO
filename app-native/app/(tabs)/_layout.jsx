@@ -49,23 +49,43 @@ export default function TabLayout() {
       }
 
       const { data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.PhoneNumbers],
+        fields: [
+          Contacts.Fields.PhoneNumbers,
+          Contacts.Fields.ContactType,
+          Contacts.Fields.Labels,
+          Contacts.Fields.Notes
+        ],
       });
 
-      const realContacts = data
-        .filter(contact => contact.phoneNumbers && contact.phoneNumbers.length > 0)
+      const emergencyContacts = data
+        .filter(contact => {
+          // Filter for contacts that:
+          // 1. Have phone numbers
+          // 2. Have "emergency" in their notes or labels (case insensitive)
+          // 3. Or are marked with a specific label/type that indicates emergency
+          return contact.phoneNumbers 
+            && contact.phoneNumbers.length > 0 
+            && (
+              (contact.notes && contact.notes.toLowerCase().includes('emergency'))
+              || (contact.contactType && contact.contactType.toLowerCase().includes('emergency'))
+              || (contact.labels && contact.labels.some(label => 
+                  label.toLowerCase().includes('emergency')
+                ))
+            );
+        })
         .map(contact => ({
           id: contact.id,
           name: contact.name,
           phone: contact.phoneNumbers[0].number,
         }));
 
-      // Ensure at least the dummy contact is present
-      setFriends([dummyContact, ...realContacts]);
-      console.log('Fetched contacts:', [dummyContact, ...realContacts]);
+      // If no emergency contacts found, use dummy contact
+      const contacts = emergencyContacts.length > 0 ? emergencyContacts : [dummyContact];
+      setFriends(contacts);
+      console.log('Fetched emergency contacts:', contacts);
 
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      console.error('Error fetching emergency contacts:', error);
       setFriends([{ id: '1', name: 'Emergency Contact 1', phone: '9152602555' }]);
     }
   };
@@ -127,6 +147,7 @@ return (
       },
     }}
   >
+    
     <Tabs.Screen
       name="index"
       options={{
