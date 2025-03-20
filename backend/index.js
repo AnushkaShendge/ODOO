@@ -24,9 +24,10 @@ app.use(express.json());
 
 app.use(cookieParser());
 
+// Routes
 app.use('/api', require('./routes/authRoutes'));
-
-app.use('/api' , require('./routes/userRoutes') )
+app.use('/api', require('./routes/userRoutes'));
+app.use('/api', require('./routes/sosRoutes')); // Add SOS routes
 
 const expressServer = app.listen(PORT,()=>console.log(`Server running on Port ${PORT}`));
 
@@ -34,6 +35,6 @@ const io = new Server(expressServer, {
     cors: {
       origin: "*",
     },
-  });
+});
   
 initializeSocket(io);

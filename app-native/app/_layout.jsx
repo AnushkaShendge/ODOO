@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SocketProvider } from '../components/SocketContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { SOSProvider } from '../context/SOSContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -28,8 +29,9 @@ export default function RootLayout() {
   }
 
   return (
-    <SocketProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme} >
+    <SOSProvider>
+      <SocketProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme} >
           <Stack options={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ headerShown: false }}  />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }}  />
@@ -48,7 +50,8 @@ export default function RootLayout() {
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />
-      </ThemeProvider>
-    </SocketProvider>
+        </ThemeProvider>
+      </SocketProvider>
+    </SOSProvider>
   );
 }
