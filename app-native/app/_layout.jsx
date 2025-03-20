@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { View, Text , StyleSheet } from 'react-native'; // Added View, Text to handle loading
 import 'react-native-reanimated';
 import { SocketProvider } from '../components/SocketContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -14,18 +15,23 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+  
+  const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   useEffect(() => {
-    if (loaded) {
+    if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [fontsLoaded]);
 
-  if (!loaded) {
-    return null;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
   return (
@@ -54,9 +60,32 @@ export default function RootLayout() {
             }} />
             <Stack.Screen name="+not-found" />
           </Stack>
+
+
           <StatusBar style="auto" />
         </ThemeProvider>
       </SocketProvider>
     </SOSProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  translateContainer: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 200, // Adjust the size as needed
+    height: 100, // Adjust the size as needed
+    backgroundColor: "white",
+    borderRadius: 10,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  translateWebView: {
+    flex: 1,
+  },
+});

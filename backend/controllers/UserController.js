@@ -1,5 +1,8 @@
+const Emergency = require('../model/Emergency');
 const FakeCall = require('../model/fake-call');
+const User = require('../model/user');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const FriendRequest = require('../model/friend-request');
 
 // Initialize Gemini API
 const API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'; // Replace with your actual API key or load from environment variables
@@ -71,4 +74,64 @@ const chatbotChat = async (req, res) => {
     }
 };
 
-module.exports = { saveFakeCall, getFakeCalls, chatbotChat };
+const addEmergency = async(req, res) => {
+    const { userId, phone } = req.body;  // Changed from emergrncy to phone
+    const call = new Emergency({ userId, phone });
+    try {
+        await call.save();
+        res.status(201).json({ message: 'Emergency contact saved' });
+    } catch(err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+const getEmergencies = async(req, res) => {
+    try {
+        const userId = req.params.id; // Changed from req.params.userId
+        const emergencyContacts = await Emergency.find({ userId });
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Return the data in the format expected by frontend
+        res.json(emergencyContacts);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+const getUsers = async (req, res) => {
+    try {
+        const users = await User.find();
+
+        // Get friend requests involving current us
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+const fetchFriends = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const user = await User.findById(userId).populate('friends', 'name email');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user.friends);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { 
+    saveFakeCall, 
+    getFakeCalls, 
+    chatbotChat, 
+    addEmergency, 
+    getEmergencies, 
+    getUsers, 
+    fetchFriends
+};
