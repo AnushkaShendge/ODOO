@@ -8,7 +8,7 @@ import { View, Text , StyleSheet } from 'react-native'; // Added View, Text to h
 import 'react-native-reanimated';
 import { SocketProvider } from '../components/SocketContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { WebView } from "react-native-webview";
+import { SOSProvider } from '../context/SOSContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -35,27 +35,26 @@ export default function RootLayout() {
   }
 
   return (
+    <SOSProvider>
       <SocketProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="otp" />
-            <Stack.Screen name="chatbot" />
-            <Stack.Screen name="RecordingHistory" />
-            <Stack.Screen name="profile" />
-            <Stack.Screen name="menu" />
-            <Stack.Screen name="help" />
-            <Stack.Screen name="language" />
-            <Stack.Screen 
-              name="friendLocation" 
-              options={{ headerShown: true, title: "Friend's Location" }} 
-            />
-            <Stack.Screen 
-              name="LocationHistory" 
-              options={{ headerShown: true, title: "Location History" }} 
-            />
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme} >
+          <Stack options={{ headerShown: false }}>
+            <Stack.Screen name="index" options={{ headerShown: false }}  />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }}  />
+            <Stack.Screen name="login" options={{ headerShown: false }}  /> 
+            <Stack.Screen name="otp" options={{ headerShown: false }} />
+            <Stack.Screen name="chatbot" options={{ headerShown: false }} />
+            <Stack.Screen name="RecordingHistory" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="menu" options={{ headerShown: false }} />
+            <Stack.Screen name="friendLocation" options={{ 
+              headerShown: true,
+              title: "Friend's Location"
+            }} />
+            <Stack.Screen name="LocationHistory" options={{ 
+              headerShown: true,
+              title: "Location History"
+            }} />
             <Stack.Screen name="+not-found" />
           </Stack>
 
@@ -63,6 +62,7 @@ export default function RootLayout() {
           <StatusBar style="auto" />
         </ThemeProvider>
       </SocketProvider>
+    </SOSProvider>
   );
 }
 

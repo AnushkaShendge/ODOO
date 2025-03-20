@@ -1,10 +1,10 @@
-
 import { Tabs } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, Alert, Linking, Vibration } from 'react-native';
+import { StyleSheet, View, Text, Alert, Linking, Vibration, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Accelerometer } from 'expo-sensors';
-
+import { useNavigation } from '@react-navigation/native';
+import { useSOSContext } from '../../context/SOSContext';
 let Contacts;
 try {
   Contacts = require('expo-contacts');
@@ -23,6 +23,8 @@ export default function TabLayout() {
   }]);
   const lastAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const lastShakeTime = useRef(0);
+  const {isSOSActive, setIsSOSActive} = useSOSContext();
+  const navigation = useNavigation();
 
   useEffect(() => {
     fetchFriends();
@@ -31,6 +33,22 @@ export default function TabLayout() {
     const subscription = Accelerometer.addListener(detectShake);
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (isSOSActive) {
+        // Prevent leaving the screen
+        e.preventDefault();
+        Alert.alert(
+          'SOS Active',
+          'Please enter security code to deactivate SOS mode',
+          [{ text: 'OK' }]
+        );
+      }
+    });
+
+    return unsubscribe;
+  }, [isSOSActive, navigation]);
 
   const fetchFriends = async () => {
     try {
@@ -126,6 +144,17 @@ return (
       tabBarItemStyle: {
         paddingVertical: 5,
       },
+      // Disable tab press when SOS is active
+      tabBarButton: (props) => (
+        <TouchableOpacity
+          {...props}
+          disabled={isSOSActive}
+          style={[
+            props.style,
+            isSOSActive && { opacity: 0.5 }
+          ]}
+        />
+      ),
     }}
   >
     <Tabs.Screen
