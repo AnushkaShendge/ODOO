@@ -14,7 +14,7 @@ const MapPage = () => {
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
   const { socket } = useSocket();
-  const userName = "JohnDoe"; // Replace with actual username (e.g., from authentication)
+  const userName = "Anushka"; // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
     let { status } = await Location.getForegroundPermissionsAsync();

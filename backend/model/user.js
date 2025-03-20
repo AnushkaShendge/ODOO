@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: { type: String, required: true },    
+    friends: [{ type: Schema.Types.ObjectId, ref: 'User' }]
   });
 
   module.exports = mongoose.model('User', UserSchema);
