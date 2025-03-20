@@ -317,26 +317,55 @@ const UsersScreen = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No users available to add</Text>
         }
-        ListFooterComponent={
+        ListHeaderComponent={
           <>
-            {friends.length > 0 && (
-              <View style={styles.friendsSection}>
-                <View style={styles.friendsHeader}>
-                  <Text style={styles.friendsTitle}>Your Friends</Text>
+            {/* Pending Requests Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Pending Requests</Text>
+              {pendingRequests.length > 0 ? (
+                pendingRequests.map(request => (
+                  <View key={request._id} style={styles.requestCard}>
+                    <Image
+                      source={{ uri: request.sender?.profilePicture || 'https://via.placeholder.com/50' }}
+                      style={styles.profilePic}
+                    />
+                    <View style={styles.requestContent}>
+                      <Text style={styles.name}>{request.sender?.name}</Text>
+                      <TouchableOpacity
+                        style={[styles.button, styles.acceptButton]}
+                        onPress={() => acceptFriendRequest(request._id)}
+                      >
+                        <Text style={styles.buttonText}>Accept</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No pending requests</Text>
+              )}
+            </View>
+
+            {/* Friends Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Your Friends</Text>
+              {friends.length > 0 ? (
+                <View style={styles.friendsGrid}>
+                  {friends.map(friend => (
+                    <View key={friend._id} style={styles.friendCard}>
+                      <Image
+                        source={{ uri: friend.profilePicture || 'https://via.placeholder.com/50' }}
+                        style={styles.friendProfilePic}
+                      />
+                      <Text style={styles.friendName} numberOfLines={1}>
+                        {friend.name}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
-                <FlatList
-                  data={friends}
-                  renderItem={renderFriendItem}
-                  keyExtractor={item => item._id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.friendsListContainer}
-                  ListEmptyComponent={
-                    <Text style={styles.emptyFriendsText}>You have no friends yet</Text>
-                  }
-                />
-              </View>
-            )}
+              ) : (
+                <Text style={styles.emptyText}>No friends yet</Text>
+              )}
+            </View>
           </>
         }
       />
@@ -522,6 +551,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     padding: 10,
+  },
+  sectionContainer: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  requestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  requestContent: {
+    flex: 1,
+    marginLeft: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  acceptButton: {
+    backgroundColor: '#4A0D42',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  friendsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    marginHorizontal: -8,
+  },
+  friendCard: {
+    width: '33.33%',
+    padding: 8,
+    alignItems: 'center',
+  },
+  friendProfilePic: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 8,
+  },
+  friendName: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#333',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    padding: 12,
   },
 });
 
