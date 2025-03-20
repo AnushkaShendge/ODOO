@@ -52,7 +52,7 @@ const Header = () => {
                         )}
                     </TouchableOpacity>
                     <TouchableOpacity 
-                        onPress={() => router.push('/profile')} 
+                        onPress={() => router.push('/menu')} 
                         style={styles.menuButton}
                     >
                         <Ionicons name="menu" size={28} color="#333" />
