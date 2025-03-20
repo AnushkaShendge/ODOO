@@ -5,6 +5,7 @@ import * as Location from "expo-location";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import io from "socket.io-client";
 import { useSocket } from "../components/SocketContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width, height } = Dimensions.get("window");
 
 const MapPage = () => {
@@ -13,8 +14,8 @@ const MapPage = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
-  const { socket } = useSocket();
-  const userName = "Anushka"; // Replace with actual username (e.g., from authentication)
+  const { socket,userName } = useSocket();
+  // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
     let { status } = await Location.getForegroundPermissionsAsync();
@@ -53,7 +54,7 @@ const MapPage = () => {
   };
 
   const startTracking = () => {
-    if (locationPermission && socket) { // Add socket check
+    if (locationPermission && socket && userName) { // Ensure userName is not null
       console.log("Started tracking");
       setIsTracking(true);
       const interval = setInterval(() => {
@@ -70,6 +71,8 @@ const MapPage = () => {
       }, 5000); // Update location every 5 seconds
 
       setLocationInterval(interval);
+    } else {
+      console.warn("Cannot start tracking: Missing location permission, socket, or userName");
     }
   };
 
@@ -86,9 +89,7 @@ const MapPage = () => {
   };
 
   useEffect(() => {
-    if (!socket) return; // Add null check
-
-    socket.emit("joinRoom", userName); // Use username instead of userId
+    if (!socket || !userName) return; // Wait until both socket and userName are ready
 
     socket.on("locationUpdate", (users) => {
       setFriends(users);
@@ -100,7 +101,7 @@ const MapPage = () => {
         socket.off("locationUpdate");
       }
     };
-  }, [socket]); // Add socket as dependency
+  }, [socket, userName]); // Add userName as a dependency
 
   return (
     <View style={styles.container}>
