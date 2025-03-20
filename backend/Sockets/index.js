@@ -41,7 +41,7 @@ const initializeSocket = (io) => {
 // Mock function to fetch friends (Replace with DB call)
 const getFriendsFromDatabase = async (username) => {
     // Assume we have a database call that fetches friend IDs of the user
-    return ["Anushka"]; // Replace with actual friend IDs
+    return ["JohnDoe"]; // Replace with actual friend IDs
 };
 
 module.exports = { initializeSocket };

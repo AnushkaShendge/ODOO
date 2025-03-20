@@ -37,6 +37,8 @@ export default function RootLayout() {
             <Stack.Screen name="otp" options={{ headerShown: false }} />
             <Stack.Screen name="chatbot" options={{ headerShown: false }} />
             <Stack.Screen name="RecordingHistory" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="menu" options={{ headerShown: false }} />
             <Stack.Screen name="friendLocation" options={{ 
               headerShown: true,
               title: "Friend's Location"

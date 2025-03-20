@@ -6,7 +6,9 @@ import {
   FlatList, 
   TouchableOpacity,
   SafeAreaView,
-  ActivityIndicator 
+  ActivityIndicator,
+  Image,
+  Modal // Add Modal import
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -29,6 +31,7 @@ const RecordingHistory = () => {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentPlayingId, setCurrentPlayingId] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [selectedImage, setSelectedImage] = React.useState(null);
 
   // Clean up sound when component unmounts
   useEffect(() => {
@@ -53,12 +56,10 @@ const RecordingHistory = () => {
       setIsLoading(true);
       console.log('Attempting to play:', uri);
       
-      // If there's already a sound playing, unload it
       if (sound) {
         await sound.unloadAsync();
       }
       
-      // Configure audio session for playback
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
@@ -67,7 +68,6 @@ const RecordingHistory = () => {
         staysActiveInBackground: true,
       });
       
-      // Create and load the sound
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true },
@@ -79,7 +79,6 @@ const RecordingHistory = () => {
       setCurrentPlayingId(id);
       setIsLoading(false);
       
-      // Play the sound
       await newSound.playAsync();
     } catch (error) {
       console.log('Error playing sound:', error);
@@ -139,12 +138,18 @@ const RecordingHistory = () => {
 
   const handlePlayButtonPress = (item) => {
     if (currentPlayingId === item.id) {
-      // If this recording is already selected
       isPlaying ? pauseSound() : resumeSound();
     } else {
-      // If this is a different recording or no recording is playing
       playSound(item.uri, item.id);
     }
+  };
+
+  const handleImagePress = (photoUri) => {
+    setSelectedImage(photoUri);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
   };
 
   const renderRecording = ({ item }) => (
@@ -153,11 +158,25 @@ const RecordingHistory = () => {
       onPress={() => handlePlayButtonPress(item)}
     >
       <View style={styles.recordingInfo}>
-        <Ionicons name="mic" size={24} color="#666" />
+        {item.photo ? (
+          <TouchableOpacity onPress={() => handleImagePress(item.photo)}>
+            <Image 
+              source={{ uri: item.photo }} 
+              style={styles.recordingPhoto} 
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        ) : (
+          <View>
+            <Ionicons name="mic" size={24} color="#666" />
+          </View>
+        )}
         <View style={styles.recordingDetails}>
           <Text style={styles.recordingDate}>{formatDate(item.date)}</Text>
           <Text style={styles.recordingDuration}>Duration: {item.duration}</Text>
-          <Text style={styles.recordingPath} numberOfLines={1} ellipsizeMode="middle">{item.fileName}</Text>
+          <Text style={styles.recordingPath} numberOfLines={1} ellipsizeMode="middle">
+            {item.fileName}
+          </Text>
         </View>
       </View>
       <View style={styles.controls}>
@@ -208,6 +227,24 @@ const RecordingHistory = () => {
           contentContainerStyle={styles.listContainer}
         />
       )}
+
+      <Modal
+        visible={selectedImage !== null}
+        transparent={true}
+        onRequestClose={closeImageModal}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={closeImageModal}
+        >
+          <Image
+            source={{ uri: selectedImage }}
+            style={styles.fullImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -268,6 +305,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     flex: 1,
   },
+  recordingPhoto: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -285,6 +327,16 @@ const styles = StyleSheet.create({
   },
   controlButton: {
     padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 

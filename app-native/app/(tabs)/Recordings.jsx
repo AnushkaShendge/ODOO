@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,16 +6,15 @@ import {
   SafeAreaView, 
   TouchableOpacity, 
   StatusBar, 
-  ActivityIndicator, 
-  FlatList,
   Animated,
   Platform,
-  Share
+  Share,
+  Button
 } from 'react-native';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import Header from '../../components/Header';
 import { Audio } from 'expo-av';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -26,37 +25,84 @@ const RecordingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
-  const [cameraRef, setCameraRef] = useState(null);
-  const [photoInterval, setPhotoInterval] = useState(null);
   const [waveformAnimation] = useState(new Animated.Value(0));
-  const [hasPermission, setHasPermission] = useState(null);
+  const [hasAudioPermission, setHasAudioPermission] = useState(null);
   const [savedRecordings, setSavedRecordings] = useState([]);
+  const [photoUri, setPhotoUri] = useState(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraRef = useRef(null);
   const router = useRouter();
   
-  // Create app directory for storing recordings
   const APP_DIRECTORY = FileSystem.documentDirectory + 'recordings/';
-  const API_URL = 'http://192.168.112.55:5000'
-  
+  const API_URL = 'http://192.168.112.55:5000';
+
   // Ensure directory exists
   useEffect(() => {
     const setupDirectory = async () => {
-      const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(APP_DIRECTORY, { intermediates: true });
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(APP_DIRECTORY, { intermediates: true });
+        }
+        console.log('Recordings directory location:', APP_DIRECTORY);
+        loadSavedRecordings();
+      } catch (error) {
+        console.log('Error setting up directory:', error);
+        alert('Error setting up app directory: ' + error.message);
       }
-      console.log('Recordings directory location:', APP_DIRECTORY);
-      // Print the full path for debugging
-      console.log('Full directory path:', await FileSystem.getInfoAsync(APP_DIRECTORY));
-      
-      loadSavedRecordings();
     };
     
-    setupDirectory().catch(error => {
-      console.log('Error setting up directory:', error);
-    });
+    setupDirectory();
   }, []);
-  
-  // Function to load saved recordings from local storage
+
+  // Initialize audio permissions
+  useEffect(() => {
+    const initializeAudioPermissions = async () => {
+      try {
+        const { status } = await Audio.requestPermissionsAsync();
+        setHasAudioPermission(status === 'granted');
+        if (status !== 'granted') {
+          alert('Audio permission is required for recording');
+        }
+      } catch (error) {
+        console.log('Error initializing audio permissions:', error);
+        alert('Error initializing audio permissions: ' + error.message);
+      }
+    };
+
+    initializeAudioPermissions();
+
+    return () => {
+      if (recording) {
+        recording.stopAndUnloadAsync().catch(error => 
+          console.log('Error stopping recording on unmount:', error)
+        );
+      }
+    };
+  }, []);
+
+  // Waveform animation
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(waveformAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+          Animated.timing(waveformAnimation, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+        ])
+      ).start();
+    } else {
+      waveformAnimation.setValue(0);
+    }
+  }, [isRecording]);
+
   const loadSavedRecordings = async () => {
     try {
       setLoading(true);
@@ -79,218 +125,171 @@ const RecordingsScreen = () => {
     }
   };
 
-  const requestPermissions = async () => {
+  const requestAudioPermissions = async () => {
     try {
-      const { status: cameraStatus } = await Camera.getCameraPermissionsAsync();
-      if (cameraStatus !== 'granted') {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-          alert('Camera permission is required');
-          return false;
-        }
-      }
-
-      const { status: audioStatus } = await Audio.requestPermissionsAsync();
-      if (audioStatus !== 'granted') {
-        alert('Audio permission is required');
-        return false;
-      }
-
-      setHasPermission(true);
-      return true;
+      const { status } = await Audio.requestPermissionsAsync();
+      setHasAudioPermission(status === 'granted');
+      return status === 'granted';
     } catch (error) {
-      console.log('Error requesting permissions:', error);
-      alert('Error requesting permissions: ' + error.message);
+      console.log('Error requesting audio permissions:', error);
+      alert('Error requesting audio permissions: ' + error.message);
       return false;
     }
   };
 
-  useEffect(() => {
-    requestPermissions();
-    return () => {
-      // Cleanup if needed
-      if (recording) {
-        recording.stopAndUnloadAsync();
-      }
-    };
-  }, []);
-  const uploadRecording = async (audioUri, metadata) => {
-    try {
-      const formData = new FormData();
-      formData.append('audio', {
-        uri: audioUri,
-        type: 'audio/m4a',
-        name: 'recording.m4a'
-      });
-      formData.append('metadata', JSON.stringify(metadata));
-  
-      const response = await fetch(`${API_URL}/api/recordings`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-  
-      if (!response.ok) throw new Error('Upload failed');
-      return await response.json();
-    } catch (error) {
-      console.error('Error uploading recording:', error);
-      throw error;
-    }
-  };
-  
-  const fetchRecordings = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/recordings`);
-      if (!response.ok) throw new Error('Failed to fetch recordings');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching recordings:', error);
-      throw error;
-    }
-  };
-  
-
-  // Animate recording waveform
-  useEffect(() => {
-    if (isRecording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(waveformAnimation, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: false,
-          }),
-          Animated.timing(waveformAnimation, {
-            toValue: 0,
-            duration: 800,
-            useNativeDriver: false,
-          }),
-        ])
-      ).start();
-    } else {
-      waveformAnimation.setValue(0);
-    }
-  }, [isRecording]);
-
-  // Generate a filename for the recording
   const getRecordingFilename = () => {
     const timestamp = Date.now();
     return `recording-${timestamp}.m4a`;
   };
 
-  // Start recording function
-  const startRecording = async () => {
-    if (!hasPermission) {
-      const granted = await requestPermissions();
-      if (!granted) {
-        alert('Camera and audio permissions are required');
-        return;
-      }
+  const takePhoto = async () => {
+    if (!cameraRef.current) {
+      console.log('Camera reference not available');
+      return null;
     }
-    
+
     try {
-      // Configure audio recording
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.3,
+        skipProcessing: true,
+        width: 640,
+        height: 480
+      });
+      console.log('Photo captured successfully:', photo.uri);
+      setPhotoUri(photo.uri);
+      return photo.uri;
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      return null;
+    }
+  };
+
+  const startRecording = async () => {
+    const audioPermissionsGranted = await requestAudioPermissions();
+    if (!audioPermissionsGranted) {
+      alert('Please grant audio permissions to continue');
+      return;
+    }
+
+    if (!cameraPermission?.granted) {
+      alert('Please grant camera permissions to continue');
+      return;
+    }
+
+    try {
+      if (recording) {
+        await recording.stopAndUnloadAsync();
+      }
+
+      setIsRecording(true);
+      setPhotoUri(null);
+      setRecording(null);
+
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
       
-      // Start audio recording
       const { recording: audioRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       setRecording(audioRecording);
-      
-      // Take photos every 5 seconds
-      const interval = setInterval(() => {
-        console.log('Would take photo here if camera was available');
-      }, 5000);
-      
-      setPhotoInterval(interval);
-      setIsRecording(true);
+
+      // Take photo immediately after starting recording
+      const photoUri = await takePhoto();
+      if (!photoUri) {
+        console.log('Failed to capture photo during recording start');
+      }
     } catch (error) {
       console.log('Error starting recording:', error);
       alert('Failed to start recording: ' + error.message);
+      setIsRecording(false);
+      setRecording(null);
     }
   };
 
-  // Modified stop recording function
   const stopRecording = async () => {
     try {
-      if (recording) {
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-        
-        // Get recording duration
-        const { sound } = await Audio.Sound.createAsync({ uri });
-        const status = await sound.getStatusAsync();
-        await sound.unloadAsync();
-        
-        // Format duration
-        const totalSeconds = Math.floor(status.durationMillis / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        // Save recording locally
-        const fileName = getRecordingFilename();
-        const newUri = APP_DIRECTORY + fileName;
-        
-        await FileSystem.moveAsync({
-          from: uri,
-          to: newUri
-        });
-        
-        // Create recording metadata
-        const newRecording = {
-          id: Date.now().toString(),
-          uri: newUri,
-          date: new Date().toISOString(),
-          duration: formattedDuration,
-          fileName
-        };
-        
-        // Update metadata file
-        const recordingsMetadataFile = APP_DIRECTORY + 'metadata.json';
-        const metadataInfo = await FileSystem.getInfoAsync(recordingsMetadataFile);
-        
-        let updatedRecordings = [newRecording];
-        if (metadataInfo.exists) {
-          const metadataContent = await FileSystem.readAsStringAsync(recordingsMetadataFile);
-          const currentMetadata = JSON.parse(metadataContent);
-          updatedRecordings = [...currentMetadata, newRecording];
-        }
-        
-        await FileSystem.writeAsStringAsync(
-          recordingsMetadataFile, 
-          JSON.stringify(updatedRecordings)
-        );
-        
-        setSavedRecordings(updatedRecordings);
-        alert(`Recording saved! Duration: ${formattedDuration}`);
-      }
+      if (!recording) return;
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
       
-      if (photoInterval) {
-        clearInterval(photoInterval);
-        setPhotoInterval(null);
-      }
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      const status = await sound.getStatusAsync();
+      await sound.unloadAsync();
       
-      // Reset audio mode
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+      const totalSeconds = Math.floor(status.durationMillis / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      const recordingId = Date.now().toString();
+      const recordingDir = `${APP_DIRECTORY}${recordingId}/`;
+      await FileSystem.makeDirectoryAsync(recordingDir, { intermediates: true });
+
+      const fileName = getRecordingFilename();
+      const newUri = recordingDir + fileName;
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newUri
       });
+
+      let savedPhotoUri = null;
+      if (photoUri) {
+        const photoName = `photo_${recordingId}.jpg`;
+        savedPhotoUri = `${recordingDir}${photoName}`;
+        try {
+          await FileSystem.moveAsync({
+            from: photoUri,
+            to: savedPhotoUri
+          });
+          console.log('Photo saved successfully:', savedPhotoUri);
+        } catch (error) {
+          console.error('Error saving photo:', error);
+          savedPhotoUri = null;
+        }
+      }
+      
+      const newRecording = {
+        id: recordingId,
+        uri: newUri,
+        photo: savedPhotoUri,
+        date: new Date().toISOString(),
+        duration: formattedDuration,
+        fileName
+      };
+      
+      const recordingsMetadataFile = APP_DIRECTORY + 'metadata.json';
+      const metadataInfo = await FileSystem.getInfoAsync(recordingsMetadataFile);
+      
+      let updatedRecordings = [newRecording];
+      if (metadataInfo.exists) {
+        const metadataContent = await FileSystem.readAsStringAsync(recordingsMetadataFile);
+        const currentMetadata = JSON.parse(metadataContent);
+        updatedRecordings = [...currentMetadata, newRecording];
+      }
+      
+      await FileSystem.writeAsStringAsync(
+        recordingsMetadataFile, 
+        JSON.stringify(updatedRecordings)
+      );
+      
+      setSavedRecordings(updatedRecordings);
+      setPhotoUri(null);
+      alert(`Recording saved! Duration: ${formattedDuration}${savedPhotoUri ? ' with photo' : ''}`);
     } catch (error) {
       console.error('Error stopping recording:', error);
       alert('Failed to save recording: ' + error.message);
     } finally {
       setRecording(null);
       setIsRecording(false);
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
     }
   };
-  
-  // Share/export a recording
+
   const shareRecording = async (recordingUri) => {
     try {
       if (Platform.OS === 'android') {
@@ -299,7 +298,6 @@ const RecordingsScreen = () => {
           title: 'Share Recording'
         });
       } else {
-        // iOS
         await Sharing.shareAsync(recordingUri);
       }
     } catch (error) {
@@ -308,15 +306,11 @@ const RecordingsScreen = () => {
     }
   };
 
-  // Navigate to recording history
   const handleHistoryPress = () => {
-    console.log('Passing recordings:', savedRecordings); // Debug log
-    
-    // Convert the recordings array to a JSON string
     const recordingsJSON = JSON.stringify(savedRecordings.map(recording => ({
       ...recording,
-      // Ensure URI is properly set
-      uri: recording.uri.startsWith('file://') ? recording.uri : `file://${recording.uri}`
+      uri: recording.uri.startsWith('file://') ? recording.uri : `file://${recording.uri}`,
+      photo: recording.photo
     })));
     
     router.push({
@@ -324,11 +318,33 @@ const RecordingsScreen = () => {
       params: { recordings: recordingsJSON }
     });
   };
+
+  // Camera permission handling
+  if (!cameraPermission) {
+    return <View />;
+  }
+
+  if (!cameraPermission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center' }}>We need your permission to use the camera</Text>
+        <Button onPress={requestCameraPermission} title="Grant Camera Permission" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
+      
+      <CameraView
+        style={styles.camera}
+        facing="front"
+        ref={cameraRef}
+      />
+      
       <View style={styles.safeArea} />
-      {/* Header */}
+      
       <Header />
       <View style={styles.header}>
         <View style={styles.safeArea} />
@@ -341,7 +357,6 @@ const RecordingsScreen = () => {
         </View>
       </View>
 
-      {/* Corrected Recording History Button */}
       <TouchableOpacity 
         style={styles.historyButton}
         onPress={handleHistoryPress}
@@ -359,7 +374,6 @@ const RecordingsScreen = () => {
       </TouchableOpacity>
       
       <View style={styles.mainContent}>
-        {/* Recording Waveform Visualization */}
         {isRecording && (
           <View style={styles.waveformContainer}>
             {[...Array(5)].map((_, index) => (
@@ -379,10 +393,10 @@ const RecordingsScreen = () => {
           </View>
         )}
         
-        {/* Record Button */}
         <TouchableOpacity
           style={[styles.recordButton, isRecording ? styles.recordingButtonActive : {}]}
           onPress={isRecording ? stopRecording : startRecording}
+          disabled={loading || !hasAudioPermission || !cameraPermission.granted}
         >
           <View style={[styles.recordIcon, isRecording ? styles.recordingActive : styles.recordingInactive]}>
           </View>
@@ -391,7 +405,6 @@ const RecordingsScreen = () => {
           </Text>
         </TouchableOpacity>
         
-        {/* Storage location info */}
         <View style={styles.storageInfo}>
           <Text style={styles.storageText}>
             Recordings saved to app's document directory
@@ -399,7 +412,6 @@ const RecordingsScreen = () => {
         </View>
       </View>
       
-      {/* Bottom Indicator */}
       <View style={styles.bottomIndicator} />
     </SafeAreaView>
   );
@@ -438,7 +450,6 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
-  // Updated styles for recording history button
   historyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,10 +512,10 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   recordingInactive: {
-    backgroundColor: '#f44336', // Red
+    backgroundColor: '#f44336',
   },
   recordingActive: {
-    backgroundColor: '#ffffff', // White
+    backgroundColor: '#ffffff',
   },
   recordButtonText: {
     color: 'white',
@@ -520,7 +531,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 5,
   },
-  // New styles for recording visualization
   waveformContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -544,6 +554,15 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 12,
     textAlign: 'center',
+  },
+  camera: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 320,
+    height: 240,
+    opacity: 0,
+    zIndex: -1,
   },
 });
 
