@@ -11,9 +11,7 @@ const registerUser = async (req, res) => {
     }
   
     try {
-      
-      // Register Student and other approved roles directly
-
+        //Register Student and other approved roles directly
         const user = new User({
           name,
           email,
@@ -23,7 +21,6 @@ const registerUser = async (req, res) => {
         // console.log(user);
         await user.save();
         return res.status(201).json({ message: 'Registration successful' });
-      
     } catch (err) {
       // console.log(err.message);
       return res.status(500).json({ message: err.message });

@@ -22,16 +22,17 @@ import { useRouter } from 'expo-router';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const [password, setPassword] = useState('');  
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
-  const url = 'http://192.168.80.60:5000';
+  const url = "http://192.168.94.60:5000"
   
   useEffect(() => {
     const checkToken = async () => {
       try {
         const userToken = await AsyncStorage.getItem('userToken');
         if (userToken) {
-          router.push('/(tabs)');
+          router.push('/ModuleSelection');
         }
       } catch (error) {
         console.error('Error checking token:', error);
@@ -40,9 +41,10 @@ const LoginScreen = () => {
     
     checkToken();
   } , [])
+
   const handleLogin = async () => {
     try {
-      const response = await fetch(`${url}/api/login`, {
+      const response = await fetch(`http://192.168.94.60:5000/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +59,7 @@ const LoginScreen = () => {
       await AsyncStorage.setItem('userData', JSON.stringify(data.user));
       // Store token and navigate to home screen
       console.log(data);
-      router.push('/(tabs)')
+      router.push('/ModuleSelection');
     } catch (error) {
       console.error(error);
     }

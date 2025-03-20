@@ -12,15 +12,15 @@ const Header = () => {
 
     useEffect(() => {
         if (!socket) return;
-
-        socket.on("sharingEnded", (data) => {
-            setNotifications(prev => [...prev, data]);
-        });
-
+    
+        const handleSharingEnded = (data) => {
+            setNotifications((prev) => [...prev, data]);
+        };
+    
+        socket.on("sharingEnded", handleSharingEnded);
+    
         return () => {
-            if (socket) {
-                socket.off("sharingEnded");
-            }
+            socket.off("sharingEnded", handleSharingEnded);
         };
     }, [socket]);
 

@@ -1,0 +1,6 @@
+.env
+*pyc
+/myenv/
+/spam/offensive_words.txt
+media/pdfs/
+media/resumes/
