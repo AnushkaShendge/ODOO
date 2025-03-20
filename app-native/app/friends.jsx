@@ -22,7 +22,7 @@ const UsersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const url = "http://192.168.31.14:5000";
+  const url = "http://192.168.94.60:5000";
   const socketRef = useRef(null);
 
   useEffect(() => {
