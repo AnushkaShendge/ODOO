@@ -34,7 +34,7 @@ const SignUpScreen = () => {
       try {
         const userToken = await AsyncStorage.getItem('userToken');
         if (userToken) {
-          router.push('/(tabs)');
+          router.push('/ModuleSelection');
         }
       } catch (error) {
         console.error('Error checking token:', error);
@@ -193,14 +193,14 @@ const SignUpScreen = () => {
       </View>
       
       {/* Footer */}
-      <View style={styles.footer}>
+      {/* <View style={styles.footer}>
         <Text style={styles.termsText}>
           By continuing, you agree that you have read and accepted our 
           <Text style={styles.termsLink}> T&Cs </Text> 
           and 
           <Text style={styles.termsLink}> Privacy Policy</Text>
         </Text>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 };
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   loginText: {
     fontSize: 16,

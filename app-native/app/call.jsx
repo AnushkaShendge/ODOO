@@ -42,7 +42,6 @@ const CallScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
     
-
       <View style={styles.callerContainer}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
