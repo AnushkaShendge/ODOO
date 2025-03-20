@@ -43,6 +43,10 @@ export default function RootLayout() {
               headerShown: true,
               title: "Friend's Location"
             }} />
+            <Stack.Screen name="LocationHistory" options={{ 
+              headerShown: true,
+              title: "Location History"
+            }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />

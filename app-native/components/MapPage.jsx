@@ -14,7 +14,7 @@ const MapPage = () => {
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
   const { socket } = useSocket();
-  const userName = "Anushka"; // Replace with actual username (e.g., from authentication)
+  const userName = "JohnDoe"; // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
     let { status } = await Location.getForegroundPermissionsAsync();
@@ -79,6 +79,9 @@ const MapPage = () => {
     if (locationInterval) {
       clearInterval(locationInterval);
       setLocationInterval(null);
+    }
+    if (socket) {
+      socket.emit("stopSharing", { userName });
     }
   };
 
