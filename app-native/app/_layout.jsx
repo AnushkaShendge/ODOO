@@ -34,7 +34,10 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme} >
           <Stack options={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ headerShown: false }}  />
+            <Stack.Screen name="ModuleSelection" options={{ headerShown: false }}  />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }}  />
+            <Stack.Screen name="(tabs2)" options={{ headerShown: false }}  />
+            <Stack.Screen name="(tabs3)" options={{ headerShown: false }}  />
             <Stack.Screen name="login" options={{ headerShown: false }}  /> 
             <Stack.Screen name="otp" options={{ headerShown: false }} />
             <Stack.Screen name="chatbot" options={{ headerShown: false }} />

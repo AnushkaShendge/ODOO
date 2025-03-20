@@ -123,12 +123,12 @@ const MapPage = () => {
             )}
           </MapView>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.locationButton}
             onPress={getCurrentLocation}
           >
             <MaterialIcons name="my-location" size={24} color="black" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity
             style={styles.trackMeButton}
