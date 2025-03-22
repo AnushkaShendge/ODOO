@@ -208,37 +208,32 @@ const SafetyApp = () => {
                             title="Friends" 
                             onPress={() => router.push('/friends')} 
                         />
-                        <MenuTile 
-                            icon={<MaterialIcons name="block" size={24} color="#4A0D42" />} 
-                            title="Block List" 
-                            onPress={() => router.push('/blocklist')} 
-                        />
                     </View>
                     
                     {/* Row 2 */}
                     <View style={styles.menuRow}>
-                        <MenuTile 
+                        {/* <MenuTile 
                             icon={<MaterialIcons name="feedback" size={24} color="#4A0D42" />} 
                             title="Feedback" 
                             onPress={() => router.push('/feedback')} 
-                        />
+                        /> */}
                         <MenuTile 
                             icon={<MaterialIcons name="assignment" size={24} color="#4A0D42" />} 
                             title="Legal" 
                             onPress={() => router.push('/legal')} 
                         />
-                        <MenuTile 
+                        {/* <MenuTile 
                             icon={<MaterialIcons name="help-outline" size={24} color="#4A0D42" />} 
                             title="Help" 
                             onPress={() => router.push('/help-outline')} 
-                        />
+                        /> */}
                     </View>
                     
                     {/* Row 3 */}
                     <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<MaterialIcons name="translate" size={24} color="#4A0D42" />} 
-                            title="Language" 
+                            title="Language"
                             onPress={() => router.push('/language')} 
                         />
                         <MenuTile 

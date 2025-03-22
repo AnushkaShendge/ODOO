@@ -59,6 +59,22 @@ export default function RootLayout() {
               headerShown: true,
               title: "Location History"
             }} />
+            <Stack.Screen name="History" options={{ 
+              headerShown: true,
+              title: "Location History",
+              headerStyle: {
+                backgroundColor: '#4A0D42',
+              },
+              headerTintColor: '#fff',
+            }} />
+            <Stack.Screen name="LocationHistory" options={{ 
+              headerShown: true,
+              title: "Location Details",
+              headerStyle: {
+                backgroundColor: '#4A0D42',
+              },
+              headerTintColor: '#fff',
+            }} />
             <Stack.Screen name="+not-found" />
           </Stack>
 

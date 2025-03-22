@@ -29,6 +29,7 @@ app.use(cookieParser());
 app.use('/api', require('./routes/authRoutes'));
 app.use('/api', require('./routes/userRoutes'));
 app.use('/api', require('./routes/sosRoutes')); // Add SOS routes
+app.use('/api/history', require('./routes/historyRoutes'));
 
 const expressServer = app.listen(PORT,()=>console.log(`Server running on Port ${PORT}`));
 

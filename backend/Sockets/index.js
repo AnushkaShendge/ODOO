@@ -1,6 +1,7 @@
 let users = {}; // Stores userId -> socketId mapping
 let sharingHistory = {}; // Add this at the top with other variables
 const User = require('../model/user')
+const History = require('../model/History');
 
 const initializeSocket = (io) => {
     io.on("connection", (socket) => {
@@ -59,31 +60,50 @@ const initializeSocket = (io) => {
 
         socket.on("stopSharing", async (data) => {
             const { userName } = data;
-            console.log("Stop sharing request received from:", userName); // Add debug log
-            console.log(sharingHistory[userName]); // Fixed typo
+            console.log("Stop sharing request received from:", userName);
+
             if (sharingHistory[userName] && sharingHistory[userName].isActive) {
                 sharingHistory[userName].isActive = false;
                 sharingHistory[userName].endTime = new Date().toISOString();
                 
                 try {
-                    const friends = await getFriendsFromDatabase(userName);
-                    console.log(`${userName} stopped sharing with:`, friends); // Fixed logging
+                    // Get user from database
+                    const user = await User.findOne({ name: userName });
+                    if (!user) {
+                        throw new Error('User not found');
+                    }
 
-                    // Send sharing ended event to each friend
+                    // Create history record
+                    const historyRecord = new History({
+                        userId: user._id,
+                        userName: userName,
+                        startTime: new Date(sharingHistory[userName].startTime),
+                        endTime: new Date(sharingHistory[userName].endTime),
+                        locations: sharingHistory[userName].locations.map(loc => ({
+                            ...loc,
+                            timestamp: new Date(loc.timestamp)
+                        })),
+                        isActive: false
+                    });
+
+                    // Save to database
+                    await historyRecord.save();
+                    console.log('Location history saved to database');
+
+                    const friends = await getFriendsFromDatabase(userName);
+                    console.log(`${userName} stopped sharing with:`, friends);
+
+                    // Send sharing ended event to each friend with the saved history
                     friends.forEach((friendUsername) => {
                         io.to(friendUsername).emit("sharingEnded", {
                             username: userName,
-                            sharingDetails: {
-                                ...sharingHistory[userName],
-                                lastLocation: sharingHistory[userName].locations[sharingHistory[userName].locations.length - 1]
-                            }
+                            sharingDetails: sharingHistory[userName]
                         });
                     });
 
                     // Cleanup sharing history after sending
-                    setTimeout(() => {
-                        delete sharingHistory[userName];
-                    }, 5000); // Clean up after 5 seconds
+                    delete sharingHistory[userName];
+                    
                 } catch (error) {
                     console.error(`Error in stopSharing for user ${userName}:`, error);
                 }

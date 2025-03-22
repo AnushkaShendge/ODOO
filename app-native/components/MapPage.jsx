@@ -60,7 +60,8 @@ const MapPage = () => {
       const interval = setInterval(() => {
         getCurrentLocation().then((loc) => {
           if (loc && socket) {
-            console.log(loc);
+            console.log(loc);+
+            socket.emit('startSharing',{userName});
             socket.emit("shareLocation", {
               userName, // Using userName instead of userId
               latitude: loc.latitude,
@@ -77,14 +78,20 @@ const MapPage = () => {
   };
 
   const stopTracking = () => {
-    console.log("Stopped tracking");
+    console.log("Stopping tracking for user:", userName); // Add debug log
     setIsTracking(false);
+    
     if (locationInterval) {
       clearInterval(locationInterval);
       setLocationInterval(null);
     }
-    if (socket) {
+    
+    if (socket && userName) {
+      socket.emit("startSharing", { userName }); // First stop the sharing
       socket.emit("stopSharing", { userName });
+      console.log("Stop sharing event emitted"); // Add debug log
+    } else {
+      console.warn("Cannot stop tracking: Missing socket or userName");
     }
   };
 
