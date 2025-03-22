@@ -11,6 +11,7 @@ const supabase = require('./config/supabaseConfig');
 const http = require("http");
 const {Server} = require("socket.io");
 const { initializeSocket } = require('./Sockets');
+const {initializzeSocket} = require('./Sockets/friend');
 
 connectDB();
 
@@ -38,3 +39,4 @@ const io = new Server(expressServer, {
 });
   
 initializeSocket(io);
+initializzeSocket(io);

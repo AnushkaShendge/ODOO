@@ -116,7 +116,7 @@ const getUsers = async (req, res) => {
 const fetchFriends = async (req, res) => {
     try {
         const userId = req.params.id;
-        const user = await User.findById(userId).populate('friends');
+        const user = await User.findById(userId).populate('friends', 'name email phone');
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -126,6 +126,7 @@ const fetchFriends = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 const acceptRequest = async (req, res) => {
     try {
@@ -175,6 +176,7 @@ const acceptRequest = async (req, res) => {
         res.status(500).json({ message: "Failed to accept friend request" });
     }
 };
+
 
 module.exports = { 
     saveFakeCall, 
