@@ -31,7 +31,7 @@ const SafetyApp = () => {
     const [deviceInfo, setDeviceInfo] = useState(null);
     const [emergencyContacts, setEmergencyContacts] = useState([]);
     const [user, setUser] = useState();
-    const url = 'http://192.168.31.14:5000';
+    const url = 'http://10.45.71.55:5000';
 
     const handleLogout = async () => {
         try {
@@ -208,29 +208,20 @@ const SafetyApp = () => {
                             title="Friends" 
                             onPress={() => router.push('/friends')} 
                         />
+                        <MenuTile 
+                            icon={<MaterialIcons name="feedback" size={24} color="#4A0D42" />} 
+                            title="Feedback" 
+                            onPress={() => router.push('/feedback')} 
+                        />
                     </View>
                     
                     {/* Row 2 */}
                     <View style={styles.menuRow}>
-                        {/* <MenuTile 
-                            icon={<MaterialIcons name="feedback" size={24} color="#4A0D42" />} 
-                            title="Feedback" 
-                            onPress={() => router.push('/feedback')} 
-                        /> */}
                         <MenuTile 
-                            icon={<MaterialIcons name="assignment" size={24} color="#4A0D42" />} 
-                            title="Legal" 
-                            onPress={() => router.push('/legal')} 
-                        />
-                        {/* <MenuTile 
                             icon={<MaterialIcons name="help-outline" size={24} color="#4A0D42" />} 
                             title="Help" 
-                            onPress={() => router.push('/help-outline')} 
-                        /> */}
-                    </View>
-                    
-                    {/* Row 3 */}
-                    <View style={styles.menuRow}>
+                            onPress={() => router.push('/faqs')} 
+                        />
                         <MenuTile 
                             icon={<MaterialIcons name="translate" size={24} color="#4A0D42" />} 
                             title="Language"
@@ -241,15 +232,15 @@ const SafetyApp = () => {
                             title="Settings" 
                             onPress={() => router.push('/settings')} 
                         />
+                    </View>
+                    
+                    {/* Row 3 */}
+                    <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<Ionicons name="call-outline" size={24} color="#4A0D42" />} 
                             title="Helpline" 
                             onPress={() => router.push('/help')} 
                         />
-                    </View>
-                    
-                    {/* Row 4 */}
-                    <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<Entypo name="share" size={24} color="#4A0D42" />} 
                             title="Share App" 
@@ -260,9 +251,9 @@ const SafetyApp = () => {
                             title="Log Out" 
                             onPress={handleLogout} 
                         />
-                        <View style={styles.menuTile}></View> {/* Empty tile for grid balance */}
                     </View>
                 </View>
+
             </ScrollView>
             
             {/* Emergency Contact Modal */}

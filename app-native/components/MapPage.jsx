@@ -60,7 +60,7 @@ const MapPage = () => {
       const interval = setInterval(() => {
         getCurrentLocation().then((loc) => {
           if (loc && socket) {
-            console.log(loc);+
+            console.log(loc);
             socket.emit('startSharing',{userName});
             socket.emit("shareLocation", {
               userName, // Using userName instead of userId
