@@ -112,6 +112,55 @@ const initializeSocket = (io) => {
             }
         });
 
+        socket.on("simulateOffline", async (data) => {
+            const { userName } = data;
+            console.log(`Simulating offline prediction for user ${userName}`);
+
+            try {
+                // Check if user has active sharing session
+                if (!sharingHistory[userName] || !sharingHistory[userName].isActive) {
+                    throw new Error('No active sharing session found');
+                }
+
+                // Get user's location history
+                const locationHistory = sharingHistory[userName].locations;
+                
+                if (locationHistory.length < 3) {
+                    throw new Error('Not enough location data for prediction');
+                }
+
+                // Make prediction using Gemini API
+                const predictedPath = await predictPath(userName, locationHistory);
+                
+                // Get user's friends
+                const friends = await getFriendsFromDatabase(userName);
+                
+                // Send predicted path to friends
+                friends.forEach((friendUsername) => {
+                    io.to(friendUsername).emit("predictedPath", {
+                        username: userName,
+                        predicted: predictedPath,
+                        isOfflineSimulation: true
+                    });
+                });
+
+                // Also send confirmation to the user
+                io.to(userName).emit("offlineSimulationStarted", {
+                    success: true,
+                    predictedLocations: predictedPath.predictedLocations.length
+                });
+
+                console.log(`Sent predicted path for ${userName} to friends:`, friends);
+            } catch (error) {
+                console.error(`Error in offline simulation for user ${userName}:`, error);
+                // Send error to user
+                io.to(userName).emit("offlineSimulationStarted", {
+                    success: false,
+                    error: error.message
+                });
+            }
+        });
+
         // Handle disconnect
         socket.on("disconnect", () => {
             const userId = Object.keys(users).find((key) => users[key] === socket.id);
@@ -162,6 +211,80 @@ const getFriendsFromDatabase = async (username) => {
 const getPlaceName = async (latitude, longitude) => {
     // Implement reverse geocoding here (using Google Maps or other service)
     return "Sample Location"; // Replace with actual implementation
+};
+
+const predictPath = async (username, locationHistory) => {
+    try {
+        // Option 1: Direct call to Gemini API
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Set this in your environment variables
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+        
+        // Format location history for the API
+        const formattedLocations = locationHistory.map(loc => ({
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            timestamp: loc.timestamp
+        }));
+
+        // Create prompt for Gemini
+        const prompt = {
+            contents: [{
+                parts: [{
+                    text: `Based on the following user location history, predict the next 5 possible locations the user might go to in the next 30 minutes. Return the response as a JSON array of objects with latitude, longitude, and timestamp. Here is the location history: ${JSON.stringify(formattedLocations)}`
+                }]
+            }]
+        };
+
+        // Call Gemini API
+        const response = await axios.post(
+            `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, 
+            prompt,
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        // Extract predicted locations from response
+        let predictedLocations = [];
+        
+        // Safely extract the text content from Gemini response
+        const textContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (textContent) {
+            // Extract JSON array from the text response
+            const jsonMatch = textContent.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                predictedLocations = JSON.parse(jsonMatch[0]);
+            } else {
+                // Fallback if we can't find a JSON array
+                throw new Error('Failed to parse Gemini response');
+            }
+        } else {
+            throw new Error('Invalid response from Gemini API');
+        }
+
+        return {
+            username,
+            originalLocations: locationHistory,
+            predictedLocations,
+            predictionTime: new Date().toISOString()
+        };
+
+        // Option 2: Call to Flask backend (uncomment if using this approach)
+        /*
+        const FLASK_API_URL = 'http://your-flask-server/predict';
+        const response = await axios.post(FLASK_API_URL, {
+            username,
+            locationHistory
+        });
+        return response.data;
+        */
+    } catch (error) {
+        console.error('Error predicting path:', error);
+        throw new Error(`Failed to predict path: ${error.message}`);
+    }
 };
 
 module.exports = { initializeSocket };

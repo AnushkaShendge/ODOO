@@ -20,7 +20,7 @@ const ChatbotScreen = () => {
   const [messages, setMessages] = useState([
     { id: '1', text: 'Hello! How can I help you today?', sender: 'bot' },
   ]);
-  const url = 'http://192.168.112.55:5000';
+  const url = 'https://normal-joint-hamster.ngrok-free.app';
   const router = useRouter();
   const flatListRef = useRef(null);
 

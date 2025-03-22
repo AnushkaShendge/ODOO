@@ -13,35 +13,60 @@ import MapPage from '../../components/MapPage';
 import Header from '../../components/Header';
 import LocationSharingBox from '../../components/LocationSharingBox';
 import { useSocket } from '../../components/SocketContext';
+import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
 export default function TrackMeScreen() {
   const [sharingUsers, setSharingUsers] = useState({});
   const { socket } = useSocket();
+  const router = useRouter(); // Add router instance
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("locationUpdate", (data) => {
+    const handleLocationUpdate = (data) => {
       setSharingUsers(prev => ({
         ...prev,
-        [data.username]: data
+        [data.username]: {
+          ...data,
+          predictedPath: null // Reset predicted path when getting real location
+        }
       }));
       
-      // Show toast notification
       ToastAndroid.show(
         `${data.username} is sharing their location`,
         ToastAndroid.SHORT
       );
-    });
+    };
+
+    const handlePredictedPath = (data) => {
+      setSharingUsers(prev => ({
+        ...prev,
+        [data.username]: {
+          ...prev[data.username],
+          predictedPath: data.predicted
+        }
+      }));
+
+      ToastAndroid.show(
+        `${data.username}'s predicted path available`,
+        ToastAndroid.SHORT
+      );
+    };
+
+    socket.on("locationUpdate", handleLocationUpdate);
+    socket.on("predictedPath", handlePredictedPath);
 
     return () => {
-      if (socket) {
-        socket.off("locationUpdate");
-      }
+      socket.off("locationUpdate", handleLocationUpdate);
+      socket.off("predictedPath", handlePredictedPath);
     };
   }, [socket]);
+
+  const handleAddFriends = () => {
+    router.push('/friends');
+  };
 
   return (
     <View style={styles.container}>
@@ -66,6 +91,7 @@ export default function TrackMeScreen() {
               key={username}
               sharingUser={username}
               location={data}
+              predictedPath={data.predictedPath}
             />
           ))}
         </View>
@@ -77,7 +103,7 @@ export default function TrackMeScreen() {
               Add a friend to use SOS and Track me
             </Text>
           </View>
-          <TouchableOpacity style={styles.addFriendsButton}>
+          <TouchableOpacity style={styles.addFriendsButton} onPress={handleAddFriends}>
             <Text style={styles.addFriendsButtonText}>Add friends</Text>
           </TouchableOpacity>
         </View>

@@ -24,7 +24,7 @@ const FakeCallScreen = () => {
   const [calls, setCalls] = useState([]);
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
-  const url = 'http://192.168.80.60:5000';
+  const url = 'https://normal-joint-hamster.ngrok-free.app';
   const router = useRouter();
 
   useEffect(() => {

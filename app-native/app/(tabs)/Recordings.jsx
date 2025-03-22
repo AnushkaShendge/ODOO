@@ -34,7 +34,7 @@ const RecordingsScreen = () => {
   const router = useRouter();
   
   const APP_DIRECTORY = FileSystem.documentDirectory + 'recordings/';
-  const API_URL = 'http://192.168.112.55:5000';
+  const API_URL = 'https://normal-joint-hamster.ngrok-free.app';
 
   // Ensure directory exists
   useEffect(() => {

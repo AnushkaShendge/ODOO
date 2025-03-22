@@ -49,7 +49,7 @@ export default function LocationHistoryList() {
   const navigateToDetail = (historyData) => {
     // Convert to string for passing as a parameter
     router.push({
-      pathname: '/locationhistory',
+      pathname: '/LocationHistory',
       params: { historyData: JSON.stringify(historyData) }
     });
   };

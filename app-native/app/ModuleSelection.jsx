@@ -1,94 +1,145 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, StatusBar, SafeAreaView } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  SafeAreaView, 
+  StatusBar,
+  Image,
+  Dimensions,
+  Animated
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const ModuleSelectionScreen = () => {
-    const router = useRouter();
-  
+const { width, height } = Dimensions.get('window');
 
-  const navigateToModule = (module) => {
-    switch(module) {
-      case 'safety':
-        router.push('/(tabs)'); // This should point to your existing tabs folder
-        break;
-      case 'literacy':
-        router.push('/(tabs2)'); // This should point to your tabs2 folder
-        break;
-      case 'development':
-        router.push('/(tabs3)'); // This should point to your tabs3 folder
-        break;
+const ProfileSelectionScreen = () => {
+  const router = useRouter();
+  const gradientAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(gradientAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(gradientAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, [gradientAnim]);
+
+  const backgroundColor = gradientAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#F3F9FF', '#EEFAFF']
+  });
+
+  const modules = [
+    { 
+      id: '1', 
+      name: 'Personal Safety', 
+      color: '#FF3A5A',
+      image: require('../assets/images/safety-icon.png'),
+      route: '/(tabs)'
+    },
+    { 
+      id: '2', 
+      name: 'Financial Literacy', 
+      color: '#20A4F3',
+      image: require('../assets/images/literacy-icon.png'),
+      route: '/(tabs2)'
+    },
+    { 
+      id: '3', 
+      name: 'Skill Development', 
+      color: '#7B61FF',
+      image: require('../assets/images/development-icon.png'),
+      route: '/(tabs3)'
+    },
+  ];
+
+  const handleModuleSelect = (moduleId) => {
+    const selectedModule = modules.find(module => module.id === moduleId);
+    if (selectedModule) {
+      router.push(selectedModule.route);
     }
+  };
+
+  const handleAddProfile = () => {
+    // Navigate to create profile screen
+    router.push('/create-profile');
+  };
+
+  const handleEditProfile = () => {
+    // Navigate to edit profiles screen
+    router.push('/edit-profiles');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       
-      <LinearGradient
-        colors={['#8A2387', '#E94057', '#F27121']}
-        style={styles.background}
-      />
+      {/* Background gradient */}
+      <Animated.View style={[styles.backgroundGradient, { backgroundColor }]} />
       
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome</Text>
-        <Text style={styles.subtitle}>Empowering every woman's journey</Text>
-      </View>
-      
-      <View style={styles.modulesContainer}>
-        <TouchableOpacity 
-          style={styles.moduleCard} 
-          onPress={() => navigateToModule('safety')}
-        >
-          <LinearGradient
-            colors={['#FF416C', '#FF4B2B']}
-            style={styles.cardGradient}
-          >
-            <Image 
-              source={require('../assets/images/safety-icon.png')} 
-              style={styles.moduleIcon}
-            />
-            <Text style={styles.moduleTitle}>Safety</Text>
-            <Text style={styles.moduleDescription}>Tools and resources for personal safety</Text>
-          </LinearGradient>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.moduleCard} 
-          onPress={() => navigateToModule('literacy')}
-        >
-          <LinearGradient
-            colors={['#43CEA2', '#185A9D']}
-            style={styles.cardGradient}
-          >
-            <Image 
-              source={require('../assets/images/literacy-icon.png')} 
-              style={styles.moduleIcon}
-            />
-            <Text style={styles.moduleTitle}>Financial Literacy</Text>
-            <Text style={styles.moduleDescription}>Learn to manage & grow your finances</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.moduleCard} 
-          onPress={() => navigateToModule('development')}
-        >
-          <LinearGradient
-            colors={['#834D9B', '#D04ED6']}
-            style={styles.cardGradient}
-          >
-            <Image 
-              source={require('../assets/images/development-icon.png')} 
-              style={styles.moduleIcon}
-            />
-            <Text style={styles.moduleTitle}>Skill Development</Text>
-            <Text style={styles.moduleDescription}>Enhance your skills & career opportunities</Text>
-          </LinearGradient>
+        <Text style={styles.title}>Select Profile</Text>
+        <TouchableOpacity style={styles.menuButton}>
+          <Text style={styles.menuButtonText}>⋮</Text>
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.footerText}>Choose a module to get started</Text>
+      <View style={styles.profilesContainer}>
+        {modules.map(module => (
+          <TouchableOpacity 
+            key={module.id}
+            style={styles.profileItem}
+            onPress={() => handleModuleSelect(module.id)}
+          >
+            <LinearGradient
+              colors={[module.color, module.color + 'CC']}
+              style={styles.avatarContainer}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Image source={module.image} style={styles.avatar} />
+            </LinearGradient>
+            <Text style={styles.profileName}>{module.name}</Text>
+          </TouchableOpacity>
+        ))}
+        
+        <TouchableOpacity 
+          style={styles.addProfileItem}
+          onPress={handleAddProfile}
+        >
+          <LinearGradient
+            colors={['#F2F2F2', '#E6E6E6']}
+            style={styles.addAvatarContainer}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.addIcon}>+</Text>
+          </LinearGradient>
+          <Text style={styles.addProfileText}>Add Profile</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.editButton}
+        onPress={handleEditProfile}
+      >
+        <Text style={styles.editButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -97,70 +148,129 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  background: {
+  backgroundGradient: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+    width: width,
+    height: height,
   },
   header: {
-    marginTop: 40,
-    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+    zIndex: 1,
   },
-  welcomeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+  backButton: {
+    padding: 10,
   },
-  subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+  backButtonText: {
+    color: '#333333',
+    fontSize: 24,
+  },
+  title: {
+    color: '#333333',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  menuButton: {
+    padding: 10,
+  },
+  menuButtonText: {
+    color: '#333333',
+    fontSize: 24,
+  },
+  profilesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: 30,
+    zIndex: 1,
+  },
+  profileItem: {
+    alignItems: 'center',
+    marginHorizontal: 20,
     marginBottom: 40,
+    width: 100,
   },
-  modulesContainer: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  moduleCard: {
-    height: 150,
-    borderRadius: 20,
-    marginBottom: 20,
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  cardGradient: {
-    flex: 1,
-    padding: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  moduleIcon: {
+  avatar: {
     width: 60,
     height: 60,
-    marginBottom: 10,
   },
-  moduleTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 5,
-  },
-  moduleDescription: {
+  profileName: {
+    color: '#333333',
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  footerText: {
+    fontWeight: '500',
     textAlign: 'center',
-    color: 'white',
-    marginBottom: 20,
+  },
+  addProfileItem: {
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  addAvatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addIcon: {
+    color: '#666666',
+    fontSize: 40,
+  },
+  addProfileText: {
+    color: '#333333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  editButton: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#666666',
+    borderRadius: 25,
+    paddingVertical: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 1,
+  },
+  editButtonText: {
+    color: '#333333',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
-export default ModuleSelectionScreen;
+export default ProfileSelectionScreen;

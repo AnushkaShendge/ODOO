@@ -23,6 +23,33 @@ import {
 import Header from '../components/Header';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Share } from 'react-native';
+
+const handleShareApp = async () => {
+    const appUrl = 'https://play.google.com/store/apps/your-app-url';
+    try {
+        const result = await Share.share({
+            message: `Check out this amazing safety app! ${appUrl}`,
+            url: appUrl,
+            title: 'Share Safety App'
+        }, {
+            dialogTitle: 'Share Safety App',
+            excludedActivityTypes: []
+        });
+        
+        if (result.action === Share.sharedAction) {
+            if (result.activityType) {
+                console.log('Shared with activity type:', result.activityType);
+            } else {
+                console.log('Shared successfully');
+            }
+        } else if (result.action === Share.dismissedAction) {
+            console.log('Share dismissed');
+        }
+    } catch (error) {
+        Alert.alert('Error', error.message);
+    }
+};
 
 const SafetyApp = () => {
     const router = useRouter();
@@ -31,7 +58,7 @@ const SafetyApp = () => {
     const [deviceInfo, setDeviceInfo] = useState(null);
     const [emergencyContacts, setEmergencyContacts] = useState([]);
     const [user, setUser] = useState();
-    const url = 'http://10.45.71.55:5000';
+    const url = 'https://normal-joint-hamster.ngrok-free.app';
 
     const handleLogout = async () => {
         try {
@@ -92,7 +119,7 @@ const SafetyApp = () => {
                 Alert.alert('Success', 'Emergency contact has been submitted successfully!');
                 setEmergencyContact('');
                 setModalVisible(false);
-                fetchEmergencyContacts(); // Refresh the list after adding a new contact
+                fetchEmergencyContacts();
             } else {
                 Alert.alert('Error', 'Failed to submit emergency contact');
             }
@@ -106,11 +133,9 @@ const SafetyApp = () => {
         <SafeAreaView style={styles.container}>
             <StatusBar backgroundColor="#4A0D42" barStyle="light-content" />
             
-            {/* Header */}
             <Header />
 
             <ScrollView style={styles.contentContainer}>
-                {/* Profile Card */}
                 <View style={styles.profileCard}>
                     <View style={styles.profileInfo}>
                         <View style={styles.profilePic}>
@@ -126,7 +151,6 @@ const SafetyApp = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* SOS Device Card */}
                 <View style={styles.sosCard}>
                     <View style={styles.sosHeader}>
                         <View style={styles.sosTitle}>
@@ -179,7 +203,6 @@ const SafetyApp = () => {
                     </View>
                 </View>
 
-                {/* Emergency Contacts List */}
                 <View style={styles.contactsContainer}>
                     <Text style={styles.contactsTitle}>Emergency Contacts</Text>
                     {Array.isArray(emergencyContacts) && emergencyContacts.length > 0 ? (
@@ -190,18 +213,16 @@ const SafetyApp = () => {
                             </View>
                         ))
                     ) : (
-                        <Text style={styles.noContactsText}>No emergency contacts added</Text>
+                        <Text style={styles.noContactsText}>No contacts found</Text>
                     )}
                 </View>
 
-                {/* Menu Grid */}
                 <View style={styles.menuGrid}>
-                    {/* Row 1 */}
                     <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<MaterialIcons name="history" size={24} color="#4A0D42" />} 
                             title="History" 
-                            onPress={() => router.push('/history')} 
+                            onPress={() => router.push('/History')} 
                         />
                         <MenuTile 
                             icon={<MaterialCommunityIcons name="hand-clap" size={24} color="#4A0D42" />} 
@@ -215,7 +236,6 @@ const SafetyApp = () => {
                         />
                     </View>
                     
-                    {/* Row 2 */}
                     <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<MaterialIcons name="help-outline" size={24} color="#4A0D42" />} 
@@ -234,7 +254,6 @@ const SafetyApp = () => {
                         />
                     </View>
                     
-                    {/* Row 3 */}
                     <View style={styles.menuRow}>
                         <MenuTile 
                             icon={<Ionicons name="call-outline" size={24} color="#4A0D42" />} 
@@ -244,7 +263,7 @@ const SafetyApp = () => {
                         <MenuTile 
                             icon={<Entypo name="share" size={24} color="#4A0D42" />} 
                             title="Share App" 
-                            onPress={() => Alert.alert('Share App', 'Share functionality to be implemented')} 
+                            onPress={handleShareApp} 
                         />
                         <MenuTile 
                             icon={<MaterialIcons name="logout" size={24} color="#4A0D42" />} 
@@ -253,10 +272,8 @@ const SafetyApp = () => {
                         />
                     </View>
                 </View>
-
             </ScrollView>
             
-            {/* Emergency Contact Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -291,7 +308,6 @@ const SafetyApp = () => {
                 </View>
             </Modal>
 
-            {/* Home Indicator */}
             <View style={styles.homeIndicator}>
                 <View style={styles.homeIndicatorBar} />
             </View>
@@ -299,7 +315,6 @@ const SafetyApp = () => {
     );
 };
 
-// Menu Tile Component with onPress
 const MenuTile = ({ icon, title, onPress }) => (
     <TouchableOpacity style={styles.menuTile} onPress={onPress}>
         <View style={styles.menuIconContainer}>
@@ -313,7 +328,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#4A0D42',
-        marginTop: 35, // Add this line for proper header visibility
+        marginTop: 35,
     },
     header: {
         flexDirection: 'row',

@@ -1,10 +1,15 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, Alert, Linking, Vibration, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Accelerometer } from 'expo-sensors';
 import { useNavigation } from '@react-navigation/native';
 import { useSOSContext } from '../../context/SOSContext';
+import * as Network from 'expo-network';
+import * as SMS from 'expo-sms';
+import * as Location from 'expo-location';
+// import DirectPhoneCall from 'react-native-direct-phone-call';
+
 
 // Import TriggerSOS as a function
 import { triggerSOS } from '../../components/TriggerSOS';
@@ -18,17 +23,25 @@ try {
 
 const SHAKE_THRESHOLD = 12;
 const UPDATE_INTERVAL = 100;
+const NETWORK_CHECK_INTERVAL = 10000; // Check network every 10 seconds
 
 export default function TabLayout() {
   const [friends, setFriends] = useState([{
     "id":"2",
     "name":"anushka",
-    "phone":"7977409706"
+    "phone":"9152602555"
   }]);
   const lastAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const lastShakeTime = useRef(0);
   const {isSOSActive, setIsSOSActive} = useSOSContext();
   const navigation = useNavigation();
+  const router = useRouter();
+  const [isConnected, setIsConnected] = useState(true);
+  const [lastNetworkStatus, setLastNetworkStatus] = useState(true);
+  const networkCheckInterval = useRef(null);
+  const lastSMSSentTime = useRef(0);
+
+
 
   const handleSOSActivated = () => {
     // Show confirmation dialog for calling emergency contacts
@@ -46,12 +59,127 @@ export default function TabLayout() {
     );
   };
 
+  // Function to directly send SMS without user interaction
+  const sendNetworkLostSMS = async () => {
+    try {
+      // Only send SMS if we haven't sent one in the last 5 minutes (300000ms)
+      const now = Date.now();
+      if (now - lastSMSSentTime.current < 300000) {
+        console.log('SMS already sent recently, skipping');
+        return;
+      }
+
+      if (friends.length === 0 || !friends[0].phone) {
+        console.log('No emergency contacts to send SMS to');
+        return;
+      }
+
+      // Request location permission if not already granted
+      let locationStr = "Location not available";
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          if (location) {
+            locationStr = `Last known location: ${location.coords.latitude}, ${location.coords.longitude}`;
+          }
+        }
+      } catch (error) {
+        console.log('Could not get location:', error);
+      }
+
+      // Create message with timestamp
+      const message = `ALERT: Network connection lost at ${new Date().toLocaleString()}. ${locationStr}. This is an automated message from the safety app.`;
+      
+      // Get phone number
+      const phoneNumber = friends[0].phone;
+      
+      // Use Expo's SMS.sendSMSAsync without awaiting - this method opens the SMS app
+      // Instead, use a direct SMS library that doesn't require user intervention
+
+      // For apps that will be published, you would use a library like react-native-sms
+      // that can send SMS directly without user interaction (requires native modules)
+      
+      // Using expo-sms, we can only open the SMS app with populated fields
+      // This is the best we can do with Expo's managed workflow
+      SMS.sendSMSAsync([phoneNumber], message).then(result => {
+        console.log('SMS result:', result);
+        if (result) {
+          lastSMSSentTime.current = now;
+        }
+      }).catch(error => {
+        console.error('Error sending SMS:', error);
+      });
+      
+      // For direct sending without user interaction, you would need to:
+      // 1. Eject from the Expo managed workflow
+      // 2. Install a native SMS module like react-native-sms
+      // 3. Use code like this:
+      // 
+      // import DirectSms from 'react-native-direct-sms';
+      // DirectSms.sendDirectSms(phoneNumber, message).then(() => {
+      //   console.log('Direct SMS sent successfully');
+      //   lastSMSSentTime.current = now;
+      // }).catch(error => {
+      //   console.error('Error sending direct SMS:', error);
+      // });
+      
+      console.log('Network lost SMS process initiated');
+    } catch (error) {
+      console.error('Error in SMS sending process:', error);
+    }
+  };
+
+  // Function to check network status
+  const checkNetworkStatus = async () => {
+    try {
+      const networkState = await Network.getNetworkStateAsync();
+      const connected = networkState.isConnected && networkState.isInternetReachable;
+      
+      // Update state
+      setIsConnected(connected);
+      
+      // If network was connected before but is now disconnected, send SMS
+      if (lastNetworkStatus && !connected) {
+        console.log('Network connection lost, sending SMS');
+        sendNetworkLostSMS();
+      }
+      
+      // Update last known status
+      setLastNetworkStatus(connected);
+    } catch (error) {
+      console.error('Error checking network status:', error);
+    }
+  };
+
   useEffect(() => {
     fetchFriends();
     Accelerometer.setUpdateInterval(UPDATE_INTERVAL);
 
     const subscription = Accelerometer.addListener(detectShake);
-    return () => subscription.remove();
+    
+    // Initial network check
+    checkNetworkStatus();
+    
+    // Set up periodic network checking
+    networkCheckInterval.current = setInterval(checkNetworkStatus, NETWORK_CHECK_INTERVAL);
+    
+    // Request location permissions early
+    (async () => {
+      try {
+        await Location.requestForegroundPermissionsAsync();
+      } catch (error) {
+        console.log('Error requesting location permissions:', error);
+      }
+    })();
+    
+    return () => {
+      subscription.remove();
+      // Clear interval on unmount
+      if (networkCheckInterval.current) {
+        clearInterval(networkCheckInterval.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -135,10 +263,9 @@ export default function TabLayout() {
 
     if (now - lastShakeTime.current > 1000 && accelerationChange > SHAKE_THRESHOLD) {
       lastShakeTime.current = now;
-      // Call triggerSOS directly
       if (!isSOSActive) {
         triggerSOS(setIsSOSActive);
-        handleSOSActivated();
+        router.push('/Safety')
       }
     }
 
@@ -197,8 +324,8 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: () => (
-            <View style={styles.sosButton}>
-              <Text style={styles.sosText}>SOS</Text>
+            <View style={[styles.sosButton, !isConnected && styles.networkLostButton]}>
+              <Text style={styles.sosText}>{isConnected ? 'SOS' : 'NO NET'}</Text>
             </View>
           ),
         }}
@@ -267,6 +394,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  networkLostButton: {
+    backgroundColor: '#FFA500', // Orange color to indicate network lost
   },
   sosText: {
     color: 'white',

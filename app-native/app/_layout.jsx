@@ -53,6 +53,7 @@ export default function RootLayout() {
             <Stack.Screen name="friends" options={{ headerShown: false }} />
             <Stack.Screen name="help" options={{ headerShown: false }} />
             <Stack.Screen name="faqs" options={{ headerShown: false }} />
+            <Stack.Screen name="feedback" options={{ headerShown: false }} />
             <Stack.Screen name="friendLocation" options={{ 
               headerShown: true,
               title: "Friend's Location"
@@ -60,22 +61,6 @@ export default function RootLayout() {
             <Stack.Screen name="LocationHistory" options={{ 
               headerShown: true,
               title: "Location History"
-            }} />
-            <Stack.Screen name="History" options={{ 
-              headerShown: true,
-              title: "Location History",
-              headerStyle: {
-                backgroundColor: '#4A0D42',
-              },
-              headerTintColor: '#fff',
-            }} />
-            <Stack.Screen name="LocationHistory" options={{ 
-              headerShown: true,
-              title: "Location Details",
-              headerStyle: {
-                backgroundColor: '#4A0D42',
-              },
-              headerTintColor: '#fff',
             }} />
             <Stack.Screen name="+not-found" />
           </Stack>

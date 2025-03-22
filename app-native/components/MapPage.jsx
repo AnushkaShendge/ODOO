@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ToastAndroid } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -15,6 +15,7 @@ const MapPage = () => {
   const [friends, setFriends] = useState({});
   const [locationInterval, setLocationInterval] = useState(null);
   const { socket,userName } = useSocket();
+  const [simulatingOffline, setSimulatingOffline] = useState(false);
   // Replace with actual username (e.g., from authentication)
 
   const checkLocationPermission = async () => {
@@ -110,6 +111,35 @@ const MapPage = () => {
     };
   }, [socket, userName]); // Add userName as a dependency
 
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("offlineSimulationStarted", (data) => {
+      if (data.success) {
+        setSimulatingOffline(false);
+        ToastAndroid.show(
+          `Predicted ${data.predictedLocations} future locations`,
+          ToastAndroid.SHORT
+        );
+      } else {
+        setSimulatingOffline(false);
+        ToastAndroid.show(
+          data.error || "Failed to simulate offline mode",
+          ToastAndroid.SHORT
+        );
+      }
+    });
+
+    return () => socket.off("offlineSimulationStarted");
+  }, [socket]);
+
+  const simulateOffline = () => {
+    if (socket && userName && isTracking) {
+      setSimulatingOffline(true);
+      socket.emit("simulateOffline", { userName });
+    }
+  };
+
   return (
     <View style={styles.container}>
       {locationPermission && location ? (
@@ -146,6 +176,18 @@ const MapPage = () => {
               {isTracking ? "Stop tracking" : "Track me"}
             </Text>
           </TouchableOpacity>
+
+          {isTracking && (
+            <TouchableOpacity
+              style={[styles.simulateOfflineButton, simulatingOffline && styles.simulatingButton]}
+              onPress={simulateOffline}
+              disabled={simulatingOffline}
+            >
+              <Text style={styles.simulateOfflineText}>
+                {simulatingOffline ? "Simulating..." : "Simulate Offline"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <View style={styles.permissionContainer}>
@@ -275,6 +317,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 50,
     marginTop: 20,
     opacity: 0.8,
+  },
+  simulateOfflineButton: {
+    position: "absolute",
+    bottom: 90,
+    alignSelf: "center",
+    backgroundColor: "#4E1158",
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  simulatingButton: {
+    opacity: 0.7,
+  },
+  simulateOfflineText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

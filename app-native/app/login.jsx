@@ -44,7 +44,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch(`http://10.45.71.55:5000/api/login`, {
+      const response = await fetch(`https://normal-joint-hamster.ngrok-free.app/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
