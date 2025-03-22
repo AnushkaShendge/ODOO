@@ -2,6 +2,7 @@ let users = {}; // Stores userId -> socketId mapping
 let sharingHistory = {}; // Add this at the top with other variables
 const User = require('../model/user')
 const History = require('../model/History');
+const axios = require('axios');
 
 const initializeSocket = (io) => {
     io.on("connection", (socket) => {
@@ -217,7 +218,7 @@ const predictPath = async (username, locationHistory) => {
     try {
         // Option 1: Direct call to Gemini API
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Set this in your environment variables
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
         
         // Format location history for the API
         const formattedLocations = locationHistory.map(loc => ({
@@ -230,7 +231,7 @@ const predictPath = async (username, locationHistory) => {
         const prompt = {
             contents: [{
                 parts: [{
-                    text: `Based on the following user location history, predict the next 5 possible locations the user might go to in the next 30 minutes. Return the response as a JSON array of objects with latitude, longitude, and timestamp. Here is the location history: ${JSON.stringify(formattedLocations)}`
+                    text: `Based on the following user location history, predict the next 5 possible locations the user might go to in the next 30 minutes but don't give close locations. Make strictly 5 variations. Return the response as a JSON array of objects with latitude, longitude, and timestamp. Here is the location history: ${JSON.stringify(formattedLocations)}`
                 }]
             }]
         };
@@ -264,7 +265,7 @@ const predictPath = async (username, locationHistory) => {
         } else {
             throw new Error('Invalid response from Gemini API');
         }
-
+        console.log('Predicted locations:', predictedLocations);
         return {
             username,
             originalLocations: locationHistory,

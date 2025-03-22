@@ -1,3 +1,12 @@
+// Suppress defaultProps warning for now
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (args[0].includes('defaultProps will be removed')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 import React, { useEffect, useState } from 'react';
 import { 
   View, 

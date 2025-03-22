@@ -56,13 +56,15 @@ const MapPage = () => {
 
   const startTracking = () => {
     if (locationPermission && socket && userName) { // Ensure userName is not null
+      if(socket)
+        socket.emit('startSharing',{userName});
+
       console.log("Started tracking");
       setIsTracking(true);
       const interval = setInterval(() => {
         getCurrentLocation().then((loc) => {
           if (loc && socket) {
             console.log(loc);
-            socket.emit('startSharing',{userName});
             socket.emit("shareLocation", {
               userName, // Using userName instead of userId
               latitude: loc.latitude,
@@ -136,7 +138,15 @@ const MapPage = () => {
   const simulateOffline = () => {
     if (socket && userName && isTracking) {
       setSimulatingOffline(true);
+      setIsTracking(false);
+
+      if (locationInterval) {
+        clearInterval(locationInterval);
+        setLocationInterval(null);
+      }
+
       socket.emit("simulateOffline", { userName });
+      // socket.emit("stopSharing", { userName });
     }
   };
 
@@ -179,11 +189,13 @@ const MapPage = () => {
 
           {isTracking && (
             <TouchableOpacity
-              style={[styles.simulateOfflineButton, simulatingOffline && styles.simulatingButton]}
+              style={[styles.simulateOfflineButton, simulatingOffline && styles.simulatingButton, 
+                {opacity:0.2, transform: [{scale:0.5}]}
+              ]}
               onPress={simulateOffline}
               disabled={simulatingOffline}
             >
-              <Text style={styles.simulateOfflineText}>
+              <Text style={[styles.simulateOfflineText,{fontSize:12}]}>
                 {simulatingOffline ? "Simulating..." : "Simulate Offline"}
               </Text>
             </TouchableOpacity>
