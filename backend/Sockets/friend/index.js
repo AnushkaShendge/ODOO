@@ -4,15 +4,15 @@ const User = require('../../model/user');
 const initializzeSocket = (io) => {
     io.on('connection', (socket) => {
         // Send friend request
-        socket.on('send_friend_request', async ({ senderId, receiverId }) => {
+        socket.on('send_friend_request', async ({ senderName, receiverName }) => {
             try {
                 const newRequest = await FriendRequest.create({
-                    sender: senderId,
-                    receiver: receiverId,
+                    sender: senderName,
+                    receiver: receiverName,
                     status: 'pending'
                 });
                 
-                io.to(receiverId).emit('new_friend_request', newRequest);
+                io.to(receiverName).emit('new_friend_request', newRequest);
             } catch (error) {
                 console.error('Friend request error:', error);
             }
@@ -43,10 +43,10 @@ const initializzeSocket = (io) => {
         });
 
         // Get pending requests
-        socket.on('get_pending_requests', async ({ userId }) => {
+        socket.on('get_pending_requests', async ({ userName }) => {
             try {
                 const pendingRequests = await FriendRequest.find({
-                    receiver: userId,
+                    receiver: userName,
                     status: 'pending'
                 }).populate('sender', 'name email');
                 
