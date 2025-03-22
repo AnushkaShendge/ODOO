@@ -9,6 +9,7 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  Linking
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -189,7 +190,7 @@ const NationalNumbersScreen = () => {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.callButton}>
+            <TouchableOpacity onPress={() => Linking.openURL(`tel:${item.number}`)} style={styles.callButton}>
               <Icon name="call" size={24} color="white" />
             </TouchableOpacity>
           </View>

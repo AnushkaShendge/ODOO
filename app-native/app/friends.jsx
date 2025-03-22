@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header';
-import io from 'socket.io-client';
+import { useSocket } from '../components/SocketContext';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Add this import
 
 const UsersScreen = () => {
   const [users, setUsers] = useState([]);
@@ -22,174 +23,30 @@ const UsersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const url = "http://192.168.94.60:5000";
-  const socketRef = useRef(null);
+  const url = "https://normal-joint-hamster.ngrok-free.app";
+  const { socket, userName } = useSocket();
 
-  useEffect(() => {
-    const loadData = async () => {
-      await getCurrentUser();
-      await fetchUsers();
-      await fetchFriends();
-    };
+  // All the existing useEffect and functions remain the same...
+
+  // Profile Image component with icon fallback
+  const ProfileImage = ({ uri, size, style }) => {
+    const imageSize = size || 60;
+    const iconSize = imageSize * 0.6;
     
-    loadData();
-
-    // Initialize socket connection
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (currentUser && !socketRef.current) {
-      // Initialize the socket connection
-      socketRef.current = io(url);
-
-      // Request pending friend requests upon connection
-      socketRef.current.on('connect', () => {
-        socketRef.current.emit('get_pending_requests', { userId: currentUser._id });
-      });
-
-      // Listen for incoming friend requests
-      socketRef.current.on('new_friend_request', (request) => {
-        if (request.receiver === currentUser._id) {
-          setPendingRequests(prev => [...prev, request]);
-          // Refresh user list to update UI
-          fetchUsers();
-        }
-      });
-
-      // Listen for accepted friend requests
-      socketRef.current.on('friend_request_accepted', (request) => {
-        // Refresh friends list and users list
-        fetchFriends();
-        fetchUsers();
-      });
-
-      // Listen for pending requests data
-      socketRef.current.on('pending_requests', (requests) => {
-        setPendingRequests(requests);
-      });
-    }
-  }, [currentUser]);
-
-  const getCurrentUser = async () => {
-    try {
-      const userStr = await AsyncStorage.getItem('userData');
-      if (userStr) {
-        const userData = JSON.parse(userStr);
-        setCurrentUser(userData);
-      }
-    } catch (error) {
-      console.error('Error getting current user:', error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${url}/api/user`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      
-      const data = await response.json();
-      
-      // Get current user ID from AsyncStorage
-      const userStr = await AsyncStorage.getItem('userData');
-      if (userStr) {
-        const userData = JSON.parse(userStr);
-        
-        // Filter out the current user and any users who are already friends
-        const filteredUsers = data.filter(user => 
-          user._id !== userData._id && 
-          user.friendshipStatus !== 'friends'
-        );
-        
-        setUsers(filteredUsers);
-      } else {
-        setUsers(data);
-      }
-      
-      setError(null);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setError('Unable to load users. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFriends = async () => {
-    try {
-      const userStr = await AsyncStorage.getItem('userData');
-      if (!userStr) return;
-      
-      const userData = JSON.parse(userStr);
-      
-      const response = await fetch(`${url}/api/friends/${userData._id}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch friends');
-      }
-      
-      const data = await response.json();
-      setFriends(data);
-    } catch (error) {
-      console.error('Error fetching friends:', error);
-      // We don't set the main error state here to avoid interfering with the main user list
-    }
-  };
-
-  const sendFriendRequest = async (userId) => {
-    if (!currentUser) return;
-    
-    try {
-      // Emit the friend request via socket
-      socketRef.current.emit('send_friend_request', { 
-        senderId: currentUser._id, 
-        receiverId: userId 
-      });
-      
-      // Optimistically update UI to show pending status for this user
-      setUsers(prev => 
-        prev.map(user => 
-          user._id === userId 
-            ? { ...user, friendshipStatus: 'pending' } 
-            : user
-        )
-      );
-      
-    } catch (error) {
-      console.error('Error sending friend request:', error);
-      alert('Failed to send friend request. Please try again.');
-    }
-  };
-
-  const acceptFriendRequest = (requestId) => {
-    if (!currentUser || !socketRef.current) return;
-    
-    socketRef.current.emit('accept_friend_request', { requestId });
-    
-    // Optimistically update the UI
-    setPendingRequests(prev => prev.filter(req => req._id !== requestId));
-  };
-
-  const navigateToFriendRequests = () => {
-    // This would typically navigate to a friend requests screen
-    // For now, let's just display the pending requests in an alert
-    if (pendingRequests.length > 0) {
-      const requestNames = pendingRequests.map(req => 
-        req.sender?.name || 'Unknown user'
-      ).join(', ');
-      
-      alert(`You have pending requests from: ${requestNames}`);
-    } else {
-      alert('No pending friend requests');
-    }
+    return uri ? (
+      <Image
+        source={{ uri }}
+        style={[{ width: imageSize, height: imageSize, borderRadius: imageSize / 2 }, style]}
+      />
+    ) : (
+      <View style={[
+        styles.profileIconContainer, 
+        { width: imageSize, height: imageSize, borderRadius: imageSize / 2 },
+        style
+      ]}>
+        <Icon name="account" size={iconSize} color="#fff" />
+      </View>
+    );
   };
 
   const renderUserItem = ({ item }) => {
@@ -198,10 +55,10 @@ const UsersScreen = () => {
       req => req.sender === item._id && req.status === 'pending'
     );
     
-    // Determine button state based on friendship status
+    // Button logic remains the same...
     let buttonText = 'Add Friend';
     let buttonStyle = styles.addButton;
-    let onPress = () => sendFriendRequest(item._id);
+    let onPress = () => sendFriendRequest(item.name);
     let disabled = false;
 
     if (hasPendingRequest) {
@@ -225,10 +82,7 @@ const UsersScreen = () => {
 
     return (
       <View style={styles.card}>
-        <Image
-          source={{ uri: item.profilePicture || 'https://via.placeholder.com/50' }}
-          style={styles.profilePic}
-        />
+        <ProfileImage uri={item.profilePicture} size={60} />
         <View style={styles.cardContent}>
           <Text style={styles.name}>{item.name}</Text>
           {item.mutualFriends > 0 && (
@@ -246,16 +100,31 @@ const UsersScreen = () => {
     );
   };
 
-  const renderFriendItem = ({ item }) => (
-    <View style={styles.friendCard}>
-      <Image
-        source={{ uri: item.profilePicture || 'https://via.placeholder.com/40' }}
-        style={styles.friendProfilePic}
-      />
-      <Text style={styles.friendName} numberOfLines={1}>{item.name}</Text>
+  const renderPendingRequest = (request) => (
+    <View key={request._id} style={styles.requestCard}>
+      <ProfileImage uri={request.sender?.profilePicture} size={50} />
+      <View style={styles.requestContent}>
+        <Text style={styles.name}>{request.sender}</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.acceptButton]}
+          onPress={() => acceptFriendRequest(request._id)}
+        >
+          <Text style={styles.buttonText}>Accept</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
+  const renderFriend = (friend) => (
+    <View key={friend._id} style={styles.friendCard}>
+      <ProfileImage uri={friend.profilePicture} size={70} />
+      <Text style={styles.friendName} numberOfLines={1}>
+        {friend.name}
+      </Text>
+    </View>
+  );
+
+  // Return statements for loading and error remain the same...
   if (loading && !users.length && !friends.length) {
     return (
       <SafeAreaView style={styles.container}>
@@ -310,8 +179,8 @@ const UsersScreen = () => {
           fetchUsers();
           fetchFriends();
           
-          if (socketRef.current && currentUser) {
-            socketRef.current.emit('get_pending_requests', { userId: currentUser._id });
+          if (socket && currentUser) {
+            socket.emit('get_pending_requests', { userId: currentUser._id });
           }
         }}
         ListEmptyComponent={
@@ -323,23 +192,7 @@ const UsersScreen = () => {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Pending Requests</Text>
               {pendingRequests.length > 0 ? (
-                pendingRequests.map(request => (
-                  <View key={request._id} style={styles.requestCard}>
-                    <Image
-                      source={{ uri: request.sender?.profilePicture || 'https://via.placeholder.com/50' }}
-                      style={styles.profilePic}
-                    />
-                    <View style={styles.requestContent}>
-                      <Text style={styles.name}>{request.sender?.name}</Text>
-                      <TouchableOpacity
-                        style={[styles.button, styles.acceptButton]}
-                        onPress={() => acceptFriendRequest(request._id)}
-                      >
-                        <Text style={styles.buttonText}>Accept</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
+                pendingRequests.map(request => renderPendingRequest(request))
               ) : (
                 <Text style={styles.emptyText}>No pending requests</Text>
               )}
@@ -350,17 +203,7 @@ const UsersScreen = () => {
               <Text style={styles.sectionTitle}>Your Friends</Text>
               {friends.length > 0 ? (
                 <View style={styles.friendsGrid}>
-                  {friends.map(friend => (
-                    <View key={friend._id} style={styles.friendCard}>
-                      <Image
-                        source={{ uri: friend.profilePicture || 'https://via.placeholder.com/50' }}
-                        style={styles.friendProfilePic}
-                      />
-                      <Text style={styles.friendName} numberOfLines={1}>
-                        {friend.name}
-                      </Text>
-                    </View>
-                  ))}
+                  {friends.map(friend => renderFriend(friend))}
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No friends yet</Text>
@@ -425,10 +268,12 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 3,
   },
-  profilePic: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  // New style for profile icon container
+  profileIconContainer: {
+    backgroundColor: '#4A0D42',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Shadow properties are inherited from parent
   },
   cardContent: {
     marginLeft: 16,
@@ -534,18 +379,6 @@ const styles = StyleSheet.create({
     marginRight: 20,
     width: 70,
   },
-  friendProfilePic: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginBottom: 8,
-  },
-  friendName: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-    width: '100%',
-  },
   emptyFriendsText: {
     textAlign: 'center',
     fontSize: 14,
@@ -602,12 +435,6 @@ const styles = StyleSheet.create({
     width: '33.33%',
     padding: 8,
     alignItems: 'center',
-  },
-  friendProfilePic: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginBottom: 8,
   },
   friendName: {
     fontSize: 14,

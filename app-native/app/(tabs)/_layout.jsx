@@ -5,6 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Accelerometer } from 'expo-sensors';
 import { useNavigation } from '@react-navigation/native';
 import { useSOSContext } from '../../context/SOSContext';
+
+// Import TriggerSOS as a function
+import { triggerSOS } from '../../components/TriggerSOS';
+
 let Contacts;
 try {
   Contacts = require('expo-contacts');
@@ -25,6 +29,22 @@ export default function TabLayout() {
   const lastShakeTime = useRef(0);
   const {isSOSActive, setIsSOSActive} = useSOSContext();
   const navigation = useNavigation();
+
+  const handleSOSActivated = () => {
+    // Show confirmation dialog for calling emergency contacts
+    Alert.alert(
+      'SOS Activated',
+      'SOS has been sent. Do you want to call your emergency contact?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Call Now',
+          onPress: callEmergencyContacts,
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   useEffect(() => {
     fetchFriends();
@@ -98,21 +118,9 @@ export default function TabLayout() {
     }
 
     Vibration.vibrate(500);
-    Alert.alert(
-      'Emergency Alert',
-      `Calling ${friends[0].name}...`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Call Now',
-          onPress: () => {
-            const phoneNumber = friends[0].phone;
-            Linking.openURL(`tel:${phoneNumber}`);
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    // Modified to directly call without another confirmation since we already confirmed
+    const phoneNumber = friends[0].phone;
+    Linking.openURL(`tel:${phoneNumber}`);
   };
 
   const detectShake = ({ x, y, z }) => {
@@ -127,142 +135,142 @@ export default function TabLayout() {
 
     if (now - lastShakeTime.current > 1000 && accelerationChange > SHAKE_THRESHOLD) {
       lastShakeTime.current = now;
-      callEmergencyContacts();
+      // Call triggerSOS directly
+      if (!isSOSActive) {
+        triggerSOS(setIsSOSActive);
+        handleSOSActivated();
+      }
     }
 
     lastAcceleration.current = { x, y, z };
   };
 
-  
-return (
-  <Tabs
-    screenOptions={{
-      headerShown: false,
-      tabBarStyle: styles.tabBar,
-      tabBarActiveTintColor: '#EC4571',
-      tabBarInactiveTintColor: 'black',
-      tabBarItemStyle: {
-        paddingVertical: 5,
-      },
-      // Disable tab press when SOS is active
-      tabBarButton: (props) => (
-        <TouchableOpacity
-          {...props}
-          disabled={isSOSActive}
-          style={[
-            props.style,
-            isSOSActive && { opacity: 0.5 }
-          ]}
-        />
-      ),
-    }}
-  >
-    <Tabs.Screen
-      name="index"
-      options={{
-        title: '',
-        tabBarIcon: ({ color }) => (
-          <View style={styles.tabItem}>
-            <Ionicons name="location" size={24} color="#EC4571" />
-            <Text style={styles.tabLabel}>Track Me</Text>
-          </View>
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: '#EC4571',
+        tabBarInactiveTintColor: 'black',
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
+        // Disable tab press when SOS is active
+        tabBarButton: (props) => (
+          <TouchableOpacity
+            {...props}
+            disabled={isSOSActive}
+            style={[
+              props.style,
+              isSOSActive && { opacity: 0.5 }
+            ]}
+          />
         ),
       }}
-    />
-    <Tabs.Screen
-      name="Recordings"
-      options={{
-        title: '',
-        tabBarIcon: ({ color }) => (
-          <View style={styles.tabItem}>
-            <Ionicons name="videocam" size={24} color="black" />
-            <Text style={styles.tabLabel} >Record</Text>
-          </View>
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="Safety"
-      options={{
-        title: '',
-        tabBarIcon: () => (
-          <View style={styles.sosButton}>
-            <Text style={styles.sosText}>SOS</Text>
-          </View>
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="FakeCall"
-      options={{
-        title: '',
-        tabBarIcon: ({ color }) => (
-          <View style={styles.tabItem}>
-            <Ionicons name="call" size={24} color="black" />
-            <Text style={styles.tabLabel} >Fake Call</Text>
-          </View>
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="Help"
-      options={{
-        title: '',
-        tabBarIcon: ({ color }) => (
-          <View style={styles.tabItem}>
-            <Ionicons name="help-circle" size={24} color="black" />
-            <Text style={styles.tabLabel} >Help</Text>
-          </View>
-        ),
-      }}
-    />
-    
-  </Tabs>
-);
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="location" size={24} color="#EC4571" />
+              <Text style={styles.tabLabel}>Track Me</Text>
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Recordings"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="videocam" size={24} color="black" />
+              <Text style={styles.tabLabel} >Record</Text>
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Safety"
+        options={{
+          title: '',
+          tabBarIcon: () => (
+            <View style={styles.sosButton}>
+              <Text style={styles.sosText}>SOS</Text>
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="FakeCall"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="call" size={24} color="black" />
+              <Text style={styles.tabLabel} >Fake Call</Text>
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="Help"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.tabItem}>
+              <Ionicons name="help-circle" size={24} color="black" />
+              <Text style={styles.tabLabel} >Help</Text>
+            </View>
+          ),
+        }}
+      />
+    </Tabs>
+  );
 }
 
 const styles = StyleSheet.create({
-tabBar: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  borderTopWidth: 1,
-  borderTopColor: '#f0f0f0',
-  backgroundColor: 'white',
-  height: 75,
-  paddingBottom: 20,
-  paddingTop: 2,
-},
-tabItem: {
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingTop: 5,
-  height: 60,
-},
-tabLabel: {
-  fontSize: 12,
-  color: 'black',
-  marginTop: 1,
-},
-sosButton: {
-  width: 55,
-  height: 55,
-  borderRadius: 27.5,
-  backgroundColor: '#FF4259',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 15,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 3.84,
-  elevation: 5,
-},
-sosText: {
-  color: 'white',
-  fontWeight: 'bold',
-  fontSize: 16,
-},
+  tabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    backgroundColor: 'white',
+    height: 75,
+    paddingBottom: 20,
+    paddingTop: 2,
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 5,
+    height: 60,
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: 'black',
+    marginTop: 1,
+  },
+  sosButton: {
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: '#FF4259',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  sosText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
-
-

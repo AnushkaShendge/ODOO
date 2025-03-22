@@ -17,6 +17,7 @@ import {
 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useSOSContext } from '../../context/SOSContext';
+import TriggerSOS from '../../components/TriggerSOS';
 
 const SafetyScreen = () => {
   const { isSOSActive, setIsSOSActive } = useSOSContext();
@@ -77,49 +78,6 @@ const SafetyScreen = () => {
     }
   };
 
-  const triggerSOS = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required for SOS');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const response = await fetch('http://192.168.80.60:5000/api/sos/trigger', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName: 'JohnDoe',
-          location: {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude
-          }
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setIsSOSActive(true); // Only use the context state
-        setLocation(location.coords);
-        Alert.alert(
-          'SOS Activated',
-          'Emergency contacts have been notified. Enter the security code sent to them to deactivate SOS mode.'
-        );
-      } else {
-        Alert.alert('Error', data.message || 'Failed to trigger SOS');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to trigger SOS');
-    }
-  };
-
   const verifyOTP = async () => {
     try {
       const response = await fetch('http://192.168.80.60:5000/api/sos/verify', {
@@ -148,6 +106,8 @@ const SafetyScreen = () => {
     }
   };
   
+  const triggerSOS = TriggerSOS().triggerSOS;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#FF5A5F" />

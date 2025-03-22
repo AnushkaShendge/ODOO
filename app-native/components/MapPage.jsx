@@ -61,6 +61,7 @@ const MapPage = () => {
         getCurrentLocation().then((loc) => {
           if (loc && socket) {
             console.log(loc);
+            socket.emit('startSharing',{userName});
             socket.emit("shareLocation", {
               userName, // Using userName instead of userId
               latitude: loc.latitude,
