@@ -1,11 +1,9 @@
 import { Tabs } from 'expo-router';
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, Alert, Linking, Vibration, TouchableOpacity } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Accelerometer } from 'expo-sensors';
-import { useNavigation } from '@react-navigation/native';
-import { useSOSContext } from '../../context/SOSContext';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+
 let Contacts;
 try {
   Contacts = require('expo-contacts');
@@ -15,7 +13,7 @@ try {
 
 export default function TabLayout() {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -23,10 +21,7 @@ export default function TabLayout() {
           tabBarActiveTintColor: '#5E60CE',
           tabBarInactiveTintColor: '#999',
           tabBarShowLabel: true,
-          tabBarLabelStyle: {
-            fontSize: 12,
-            marginBottom: 5,
-          },
+          tabBarLabelStyle: styles.tabBarLabel,
         }}
       >
         <Tabs.Screen
@@ -35,7 +30,7 @@ export default function TabLayout() {
             title: 'Home',
             tabBarLabel: 'Home',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
+              <Ionicons name="home" size={size} color={color} />
             ),
           }}
         />
@@ -50,12 +45,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="wallet"
+          name="simulations"
           options={{
-            title: 'Wallet',
-            tabBarLabel: 'Wallet',
+            title: 'Simulation',
+            tabBarLabel: 'Simulation',
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="account-balance-wallet" size={size} color={color} />
+              <FontAwesome5 name="chart-line" size={size} color={color} />
             ),
           }}
         />
@@ -65,14 +60,14 @@ export default function TabLayout() {
             title: 'Profile',
             tabBarLabel: 'Profile',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person-outline" size={size} color={color} />
+              <Ionicons name="person" size={size} color={color} />
             ),
           }}
         />
       </Tabs>
-      
+
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={() => console.log('FAB pressed')}>
         <LinearGradient
           colors={['#5E60CE', '#4EA8DE']}
           style={styles.fabGradient}
@@ -85,6 +80,10 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5', // Light background for contrast
+  },
   tabBar: {
     height: 70,
     backgroundColor: 'white',
@@ -101,9 +100,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  tabBarLabel: {
+    fontSize: 12,
+    marginBottom: 5,
+    fontWeight: '500',
+  },
   fab: {
     position: 'absolute',
-    bottom: 75,
+    bottom: 90, // Adjusted to sit above tab bar
     alignSelf: 'center',
     width: 60,
     height: 60,
@@ -122,36 +126,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 5,
-    height: 60,
-  },
-  tabLabel: {
-    fontSize: 12,
-    color: 'black',
-    marginTop: 1,
-  },
-  sosButton: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
-    backgroundColor: '#FF4259',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  sosText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
 });
-
-
