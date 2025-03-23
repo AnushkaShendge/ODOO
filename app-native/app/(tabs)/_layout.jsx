@@ -272,16 +272,26 @@ export default function TabLayout() {
     lastAcceleration.current = { x, y, z };
   };
 
+  // Replace your current Tabs component with this:
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#EC4571',
-        tabBarInactiveTintColor: 'black',
-        tabBarItemStyle: {
-          paddingVertical: 5,
+        tabBarStyle: {
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 5,
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#f0f0f0',
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
+        tabBarActiveTintColor: '#EC4571',
+        tabBarInactiveTintColor: '#555555',
         // Disable tab press when SOS is active
         tabBarButton: (props) => (
           <TouchableOpacity
@@ -298,34 +308,59 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '',
-          tabBarIcon: ({ color }) => (
-            <View style={styles.tabItem}>
-              <Ionicons name="location" size={24} color="#EC4571" />
-              <Text style={styles.tabLabel}>Track Me</Text>
-            </View>
+          title: 'Track Me',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="location" size={24} color={focused ? "#EC4571" : "#555555"} />
           ),
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            marginTop: -5,
+          },
         }}
       />
       <Tabs.Screen
         name="Recordings"
         options={{
-          title: '',
-          tabBarIcon: ({ color }) => (
-            <View style={styles.tabItem}>
-              <Ionicons name="videocam" size={24} color="black" />
-              <Text style={styles.tabLabel} >Record</Text>
-            </View>
+          title: 'Record',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="videocam" size={24} color={focused ? "#EC4571" : "#555555"} />
           ),
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            marginTop: -5,
+          },
         }}
       />
       <Tabs.Screen
         name="Safety"
         options={{
           title: '',
-          tabBarIcon: () => (
-            <View style={[styles.sosButton, !isConnected && styles.networkLostButton]}>
-              <Text style={styles.sosText}>{isConnected ? 'SOS' : 'NO NET'}</Text>
+          tabBarIcon: ({ focused }) => (
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: isConnected ? '#FF4259' : '#FFA500',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 30,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              elevation: 8,
+              borderWidth: 3,
+              borderColor: 'white',
+            }}>
+              <Text style={{
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: 18,
+              }}>
+                {isConnected ? 'SOS' : 'NO NET'}
+              </Text>
             </View>
           ),
         }}
@@ -333,25 +368,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="FakeCall"
         options={{
-          title: '',
-          tabBarIcon: ({ color }) => (
-            <View style={styles.tabItem}>
-              <Ionicons name="call" size={24} color="black" />
-              <Text style={styles.tabLabel} >Fake Call</Text>
-            </View>
+          title: 'Fake Call',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="call" size={24} color={focused ? "#EC4571" : "#555555"} />
           ),
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            marginTop: -5,
+          },
         }}
       />
       <Tabs.Screen
         name="Help"
         options={{
-          title: '',
-          tabBarIcon: ({ color }) => (
-            <View style={styles.tabItem}>
-              <Ionicons name="help-circle" size={24} color="black" />
-              <Text style={styles.tabLabel} >Help</Text>
-            </View>
+          title: 'Help',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name="help-circle" size={24} color={focused ? "#EC4571" : "#555555"} />
           ),
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            marginTop: -5,
+          },
         }}
       />
     </Tabs>
@@ -366,29 +405,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     backgroundColor: 'white',
-    height: 75,
-    paddingBottom: 20,
-    paddingTop: 2,
+    height: 60,  // Reduced from 75 to make it more compact
+    paddingBottom: 10, // Reduced from 20
+    paddingTop: 0,  // Changed from 2
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 5,
-    height: 60,
+    width: '20%',  // Make each tab take equal width
+    height: 50,
   },
   tabLabel: {
     fontSize: 12,
     color: 'black',
-    marginTop: 1,
+    marginTop: 2,
+    textAlign: 'center',
   },
   sosButton: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#FF4259',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginTop: -15,  // Move it up to create a floating effect
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -396,7 +436,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   networkLostButton: {
-    backgroundColor: '#FFA500', // Orange color to indicate network lost
+    backgroundColor: '#FFA500',
   },
   sosText: {
     color: 'white',
