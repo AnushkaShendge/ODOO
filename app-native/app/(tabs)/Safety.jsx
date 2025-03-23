@@ -34,14 +34,20 @@ const SafetyScreen = () => {
   const [location, setLocation] = useState(null);
   const [sound, setSound] = useState(null);
   const router = useRouter();
+  const [sosJustDeactivated, setSosJustDeactivated] = useState(false);
   
   const cameraRef = useRef(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [recording, setRecording] = useState(null);
   const [photoUri, setPhotoUri] = useState(null);
   const [audioUri, setAudioUri] = useState(null);
-
+  
   useEffect(() => {
+
+    if (sosJustDeactivated) {
+      return;
+    }
+
     const setupDirectory = async () => {
       try {
         const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
@@ -69,10 +75,18 @@ const SafetyScreen = () => {
         stopRecording(false);
       }
     };
-  }, []);
+  }, [sosJustDeactivated]);
+
+  // Add a ref to track if initialization has already happened
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (cameraPermission?.granted && cameraRef.current) {
+    if (sosJustDeactivated) {
+      return; // Skip camera initialization if SOS was just deactivated
+    }
+
+    if (cameraPermission?.granted && cameraRef.current && !hasInitialized.current && !isSOSActive && !hasTriggeredSOS) {
+      hasInitialized.current = true;
       const captureInitialData = async () => {
         try {
           const photoUri = await takePhoto();
@@ -83,7 +97,7 @@ const SafetyScreen = () => {
       };
       captureInitialData();
     }
-  }, [cameraPermission?.granted, cameraRef.current]);
+  }, [cameraPermission?.granted, cameraRef.current, isSOSActive, hasTriggeredSOS, sosJustDeactivated]);
 
   // Audio playback effect
   useEffect(() => {
@@ -270,6 +284,10 @@ const SafetyScreen = () => {
   };
 
   useEffect(() => {
+    if (sosJustDeactivated) {
+      return; // Skip countdown if SOS was just deactivated
+    }
+
     if (countdown > 0 && !isSOSActive && !hasTriggeredSOS) {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
@@ -282,7 +300,7 @@ const SafetyScreen = () => {
         sound.stopAsync();
       }
     }
-  }, [countdown, isSOSActive, hasTriggeredSOS, sound]);
+  }, [countdown, isSOSActive, hasTriggeredSOS, sound, sosJustDeactivated]);
 
   useEffect(() => {
     if (countdown === 0 && !isSOSActive && !hasTriggeredSOS) {
@@ -324,6 +342,23 @@ const SafetyScreen = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const resetSOSState = () => {
+    setIsSOSActive(false);
+    setCountdown(10);
+    setOtpInput('');
+    setHasTriggeredSOS(false);
+    hasInitialized.current = false;
+    
+    if (recording) {
+      stopRecording(false);
+    }
+    
+    if (sound) {
+      sound.stopAsync();
+    }
+  };
+  
+  // Update your handleCancel function
   const handleCancel = () => {
     if (!isSOSActive) {
       stopRecording(false);
@@ -332,9 +367,11 @@ const SafetyScreen = () => {
       if (sound) {
         sound.stopAsync();
       }
+      // Only restart camera if we're not navigating away
       takePhoto().then(() => startRecording());
     }
   };
+  
 
   const handleSkip = () => {
     if (!isSOSActive) {
@@ -345,6 +382,7 @@ const SafetyScreen = () => {
     }
   };
 
+  // Modify your verifyOTP function to properly reset the state
   const verifyOTP = async () => {
     try {
       const userStr = await AsyncStorage.getItem('userData');
@@ -362,13 +400,10 @@ const SafetyScreen = () => {
 
       const data = await response.json();
       if (data.success) {
-        setIsSOSActive(false);
-        setCountdown(10);
-        setOtpInput('');
-        setHasTriggeredSOS(false);
-        if (sound) {
-          sound.stopAsync();
-        }
+        // Stop any ongoing recordings first
+        resetSOSState();
+
+        setSosJustDeactivated(true);
         
         Alert.alert(
           'Success',

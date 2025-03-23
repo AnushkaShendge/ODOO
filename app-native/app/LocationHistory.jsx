@@ -1,133 +1,370 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+// Suppress defaultProps warning for now
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (args[0].includes('defaultProps will be removed')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
 
-export default function LocationHistory() {
-  const params = useLocalSearchParams();
-  const historyData = JSON.parse(params.historyData);
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  SafeAreaView,
+  StatusBar,
+  TextInput,
+  Image
+} from 'react-native';
+import { 
+  Feather, 
+  FontAwesome5, 
+  MaterialIcons
+} from '@expo/vector-icons';
+import CountryPicker from 'react-native-country-picker-modal';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-  const calculateDuration = (start, end) => {
-    const startTime = new Date(start);
-    const endTime = new Date(end);
-    const diff = endTime - startTime;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m`;
+const SignUpScreen = () => {
+  const [countryCode, setCountryCode] = useState('IN');
+  const [callingCode, setCallingCode] = useState('91');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [name , setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const router = useRouter();
+  
+  const url = "http://192.168.0.105:5000";
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('userToken');
+        if (userToken) {
+          router.push('/ModuleSelection');
+        }
+      } catch (error) {
+        console.error('Error checking token:', error);
+      }
+    };
+    
+    checkToken();
+    } , [])
+
+  const handleSubmit = async () => {
+    try {
+      if(phoneNumber.length < 10) {
+        throw new Error('Invalid phone number');
+      }
+      const response = await fetch(`${url}/api/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, phone:phoneNumber }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to sign up');
+      }
+      const data = await response.json();
+      // Store token and navigate to OTP screen
+      console.log(data);
+      router.push('/otp');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
+  const onSelectCountry = (country) => {
+    setCountryCode(country.cca2);
+    setCallingCode(country.callingCode[0]);
+    setCountryPickerVisible(false);
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Location Sharing History</Text>
-      </View>
-
-      <View style={styles.detailsContainer}>
-        <Text style={styles.label}>Start Time:</Text>
-        <Text style={styles.value}>{new Date(historyData.startTime).toLocaleString()}</Text>
+        <View style={styles.logoContainer}>
+          <FontAwesome5 name="dove" size={24} color="#F94989" />
+          <Text style={styles.logoText}>I'M SAFE</Text>
+        </View>
         
-        <Text style={styles.label}>Duration:</Text>
-        <Text style={styles.value}>
-          {calculateDuration(historyData.startTime, historyData.endTime)}
-        </Text>
+        <TouchableOpacity style={styles.languageSelector}>
+          <Image 
+            source={{ uri: 'https://flagcdn.com/w40/gb.png' }} 
+            style={styles.flagIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.languageText}>English</Text>
+          <MaterialIcons name="keyboard-arrow-down" size={24} color="#333" />
+        </TouchableOpacity>
       </View>
-
-      <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          initialRegion={{
-            latitude: historyData.locations[0].latitude,
-            longitude: historyData.locations[0].longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          }}
-        >
-          {historyData.locations.map((loc, index) => (
-            <Marker
-              key={index}
-              coordinate={{
-                latitude: loc.latitude,
-                longitude: loc.longitude,
-              }}
-              title={loc.placeName}
-              description={new Date(loc.timestamp).toLocaleTimeString()}
+      
+      {/* Content */}
+      <View style={styles.content}>
+        <Text style={styles.title}>Sign Up</Text>
+        <Text style={styles.inputLabel}>Enter your Username</Text>
+        <View style={styles.emailInputContainer}>
+          <TextInput
+            style={styles.emailInput}
+            placeholder="Enter username"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="none"
+          />
+        </View>
+        {/* Email Input */}
+        <Text style={styles.inputLabel}>Enter your email</Text>
+        <View style={styles.emailInputContainer}>
+          <TextInput
+            style={styles.emailInput}
+            keyboardType="email-address"
+            placeholder="Enter email address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+          />
+        </View>
+        <Text style={styles.inputLabel}>Enter your Password</Text>
+        <View style={styles.emailInputContainer}>
+          <TextInput
+            style={styles.emailInput}
+            secureTextEntry={true}
+            placeholder="Enter password"
+            value={password}
+            onChangeText={setPassword}
+            autoCapitalize="none"
+          />
+        </View>
+        
+        <Text style={styles.inputLabel}>Enter your mobile Number</Text>
+        
+        <View style={styles.phoneInputContainer}>
+          {/* Country code selector */}
+          <TouchableOpacity 
+            style={styles.countrySelector}
+            onPress={() => setCountryPickerVisible(true)}
+          >
+            <View style={styles.flagButtonContainer}>
+              <CountryPicker
+                onSelect={onSelectCountry}
+                countryCode={countryCode}
+                visible={countryPickerVisible}
+                onClose={() => setCountryPickerVisible(false)}
+                withFlag={true}
+                withFilter={true}
+                withCallingCode={true}
+                withEmoji={false}
+                withCallingCodeButton={false}
+                theme={{
+                  primaryColor: '#4A0D42',
+                  primaryColorVariant: '#F94989',
+                  backgroundColor: '#FFFFFF',
+                  onBackgroundTextColor: '#333333',
+                  fontSize: 16,
+                }}
+              />
+              <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
+            </View>
+          </TouchableOpacity>
+          
+          {/* Phone input with prefix */}
+          <View style={styles.phoneWrapper}>
+            <Text style={styles.prefixText}>+{callingCode}</Text>
+            <TextInput
+              style={styles.phoneInput}
+              keyboardType="phone-pad"
+              placeholder="Enter phone number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
             />
-          ))}
-        </MapView>
-      </View>
-
-      <View style={styles.locationsList}>
-        <Text style={styles.subtitle}>Location Timeline</Text>
-        {historyData.locations.map((loc, index) => (
-          <View key={index} style={styles.locationItem}>
-            <Text style={styles.placeName}>{loc.placeName}</Text>
-            <Text style={styles.timestamp}>
-              {new Date(loc.timestamp).toLocaleTimeString()}
-            </Text>
           </View>
-        ))}
+        </View>
+        
+        {/* Continue button */}
+        <TouchableOpacity onPress={handleSubmit} style={styles.continueButton}>
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </TouchableOpacity>
+
+        {/* Login Link */}
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.loginLink}>Login</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </ScrollView>
+      
+      {/* Footer */}
+      {/* <View style={styles.footer}>
+        <Text style={styles.termsText}>
+          By continuing, you agree that you have read and accepted our 
+          <Text style={styles.termsLink}> T&Cs </Text> 
+          and 
+          <Text style={styles.termsLink}> Privacy Policy</Text>
+        </Text>
+      </View> */}
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    marginTop: StatusBar.currentHeight || 0,
   },
-  title: {
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoText: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#F94989',
+    marginLeft: 10,
   },
-  detailsContainer: {
-    padding: 20,
+  languageSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
   },
-  label: {
+  flagIcon: {
+    width: 24,
+    height: 16,
+    marginRight: 8,
+  },
+  languageText: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
+    color: '#333',
+    marginRight: 5,
   },
-  value: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginBottom: 15,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
-  mapContainer: {
-    height: 300,
-    margin: 20,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 10,
-  },
-  locationsList: {
-    padding: 20,
-  },
-  subtitle: {
-    fontSize: 20,
+  title: {
+    fontSize: 30,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 30,
+  },
+  inputLabel: {
+    fontSize: 18,
+    color: '#333',
     marginBottom: 15,
   },
-  locationItem: {
-    padding: 15,
-    backgroundColor: '#f8f8f8',
+  emailInputContainer: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
     borderRadius: 10,
-    marginBottom: 10,
+    paddingHorizontal: 15,
+    marginBottom: 25,
   },
-  placeName: {
+  emailInput: {
     fontSize: 16,
-    fontWeight: '500',
+    paddingVertical: 12,
   },
-  timestamp: {
-    fontSize: 14,
+  phoneInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 30,
+  },
+  countrySelector: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 10,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 110,
+  },
+  flagButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 5,
+  },
+  phoneWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+  },
+  prefixText: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 5,
+  },
+  phoneInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+  },
+  continueButton: {
+    backgroundColor: '#4A0D42',
+    borderRadius: 30,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  continueButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  loginText: {
+    fontSize: 16,
     color: '#666',
-    marginTop: 5,
+  },
+  loginLink: {
+    fontSize: 16,
+    color: '#4A0D42',
+    fontWeight: '600',
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  termsText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#4A0D42',
+    fontWeight: '500',
   },
 });
+
+export default SignUpScreen;

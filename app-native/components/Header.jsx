@@ -37,7 +37,7 @@ const Header = () => {
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <FontAwesome5 name="dove" size={24} color="#F94989" />
-                    <Text style={styles.headerTitle}>I'M SAFE</Text>
+                    <Text style={styles.headerTitle}>SHAKTI</Text>
                 </View>
                 <View style={styles.headerRight}>
                     <TouchableOpacity 
