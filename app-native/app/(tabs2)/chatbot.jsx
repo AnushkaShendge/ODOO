@@ -168,7 +168,7 @@ const GeminiChatbot = () => {
 
     try {
       const apiKey = 'YOUR_API_KEY_HERE'; // Replace with your real Gemini API key
-      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
       const journeyPrompt = `
         Based on the following user input: "${prompt}"

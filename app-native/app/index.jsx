@@ -1,3 +1,13 @@
+// Suppress defaultProps warning for now
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (args[0].includes('defaultProps will be removed')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
+
 import React, { useEffect, useState } from 'react';
 import { 
   View, 
@@ -28,7 +38,7 @@ const SignUpScreen = () => {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const router = useRouter();
   
-  const url = "http://192.168.0.105:5000";
+  const url = "https://normal-joint-hamster.ngrok-free.app";
   useEffect(() => {
     const checkToken = async () => {
       try {
@@ -49,12 +59,12 @@ const SignUpScreen = () => {
       if(phoneNumber.length < 10) {
         throw new Error('Invalid phone number');
       }
-      const response = await fetch(`${url}/api/signup`, {
+      const response = await fetch(`${url}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, phone:phoneNumber }),
+        body: JSON.stringify({name , email, password, phone:phoneNumber }),
       });
       if (!response.ok) {
         throw new Error('Failed to sign up');
@@ -62,7 +72,7 @@ const SignUpScreen = () => {
       const data = await response.json();
       // Store token and navigate to OTP screen
       console.log(data);
-      router.push('/otp');
+      router.push('/login');
     } catch (error) {
       console.error(error);
     }
