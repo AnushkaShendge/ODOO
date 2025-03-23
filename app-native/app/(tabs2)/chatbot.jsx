@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Alert,
 } from 'react-native';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Component to render markdown content in React Native
 const MarkdownRenderer = ({ content }) => {
@@ -167,8 +168,9 @@ const GeminiChatbot = () => {
     setErrorMessage('');
 
     try {
-      const apiKey = 'YOUR_API_KEY_HERE'; // Replace with your real Gemini API key
-      const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+      const apiKey = 'AIzaSyACNnrdq6ueJPz-3-KlXUHKgXTmRnhCwtg'; // Replace with your real Gemini API key
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const journeyPrompt = `
         Based on the following user input: "${prompt}"
@@ -182,37 +184,8 @@ const GeminiChatbot = () => {
         Format the response **only in Markdown tables** with headers using #. Use Indian Rupees (₹) for all monetary values. Highlight key figures (e.g., current salary, growth rates, projected milestones) in **bold**. Do not include any text outside of tables. If specific data (e.g., salaries, industry) is missing, infer reasonable values based on context and note assumptions in the table.
       `;
 
-      const requestBody = {
-        contents: [{
-          parts: [{
-            text: journeyPrompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-        }
-      };
-
-      const response = await fetch(`${apiUrl}?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data || !data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error('Invalid response structure from Gemini API');
-      }
-
-      const generatedContent = data.candidates[0].content.parts[0].text;
+      const result = await model.generateContent(journeyPrompt);
+      const generatedContent = result.response.text();
 
       if (!generatedContent.includes('|') || !generatedContent.includes('#')) {
         throw new Error('API response does not contain valid Markdown tables');
