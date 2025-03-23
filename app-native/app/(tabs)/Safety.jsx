@@ -33,15 +33,62 @@ const SafetyScreen = () => {
   const [hasTriggeredSOS, setHasTriggeredSOS] = useState(false);
   const [location, setLocation] = useState(null);
   const [sound, setSound] = useState(null);
-  const router = useRouter();
-  const [sosJustDeactivated, setSosJustDeactivated] = useState(false);
-  
-  const cameraRef = useRef(null);
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [isSoundPlaying, setIsSoundPlaying] = useState(false);
   const [recording, setRecording] = useState(null);
   const [photoUri, setPhotoUri] = useState(null);
   const [audioUri, setAudioUri] = useState(null);
-  
+  const [isMounted, setIsMounted] = useState(true); // New state to track mounting
+
+  const cameraRef = useRef(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const router = useRouter();
+
+  const playEmergencySound = async () => {
+    if (!isMounted) return;
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const newSound = new Audio.Sound();
+      await newSound.loadAsync(require('../../assets/alert.mp3'));
+      await newSound.setVolumeAsync(1.0);
+      await newSound.setIsLoopingAsync(true);
+      
+      await Audio.setAudioModeAsync({
+        staysActiveInBackground: true,
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+        playThroughEarpieceAndroid: false,
+        shouldDuckAndroid: false,
+      });
+
+      setSound(newSound);
+      if (isMounted) {
+        await newSound.playAsync();
+        setIsSoundPlaying(true);
+      }
+    } catch (error) {
+      console.error('Error playing emergency sound:', error);
+      if (isMounted) {
+        Alert.alert('Error', 'Failed to play emergency sound');
+      }
+    }
+  };
+
+  const stopSound = async () => {
+    try {
+      if (sound && isSoundPlaying) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+        setIsSoundPlaying(false);
+      }
+    } catch (error) {
+      console.error('Error stopping sound:', error);
+    }
+  };
+
   useEffect(() => {
 
     if (sosJustDeactivated) {
@@ -71,22 +118,16 @@ const SafetyScreen = () => {
     getLocation();
     
     return () => {
+      setIsMounted(false);
+      stopSound();
       if (recording) {
         stopRecording(false);
       }
     };
-  }, [sosJustDeactivated]);
-
-  // Add a ref to track if initialization has already happened
-  const hasInitialized = useRef(false);
+  }, [cameraPermission, recording]);
 
   useEffect(() => {
-    if (sosJustDeactivated) {
-      return; // Skip camera initialization if SOS was just deactivated
-    }
-
-    if (cameraPermission?.granted && cameraRef.current && !hasInitialized.current && !isSOSActive && !hasTriggeredSOS) {
-      hasInitialized.current = true;
+    if (cameraPermission?.granted && cameraRef.current && isMounted) {
       const captureInitialData = async () => {
         try {
           const photoUri = await takePhoto();
@@ -97,47 +138,55 @@ const SafetyScreen = () => {
       };
       captureInitialData();
     }
-  }, [cameraPermission?.granted, cameraRef.current, isSOSActive, hasTriggeredSOS, sosJustDeactivated]);
+  }, [cameraPermission?.granted, isMounted]);
 
-  // Audio playback effect
   useEffect(() => {
-    let timer;
-    
-    const playAudio = async () => {
-      try {
-        const { sound: audioSound } = await Audio.Sound.createAsync(
-          require('../../assets/alert.mp3')
-        );
-        setSound(audioSound);
-        await audioSound.playAsync();
-      } catch (error) {
-        console.error('Error playing audio:', error);
-        Alert.alert('Error', 'Failed to play alert sound');
-      }
-    };
-
-    if (!isSOSActive && !hasTriggeredSOS) {
-      timer = setTimeout(() => {
-        playAudio();
-      }, 10000);
+    if (countdown === 0 && !isSOSActive && !hasTriggeredSOS && isMounted) {
+      stopRecording(true);
+      setHasTriggeredSOS(true);
+      setIsSOSActive(true);
+      playEmergencySound();
     }
+  }, [countdown, isSOSActive, hasTriggeredSOS, isMounted]);
 
-    return () => {
-      if (timer) clearTimeout(timer);
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [isSOSActive, hasTriggeredSOS]);
+  useEffect(() => {
+    if (!isMounted) return;
+
+    if (countdown > 0 && !isSOSActive && !hasTriggeredSOS) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (isSOSActive) {
+      setCountdown(0);
+      setHasTriggeredSOS(true);
+      stopSound();
+    }
+  }, [countdown, isSOSActive, hasTriggeredSOS, isMounted]);
+
+  useEffect(() => {
+    if (isSOSActive && isMounted) {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        Alert.alert(
+          'SOS Active',
+          'Please enter the security code to deactivate SOS mode',
+          [{ text: 'OK' }]
+        );
+        return true;
+      });
+      return () => backHandler.remove();
+    }
+  }, [isSOSActive, isMounted]);
 
   const getLocation = async () => {
+    if (!isMounted) return;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const locationData = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High
         });
-        setLocation(locationData);
+        if (isMounted) setLocation(locationData);
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -145,7 +194,7 @@ const SafetyScreen = () => {
   };
 
   const takePhoto = async () => {
-    if (!cameraRef.current) return null;
+    if (!cameraRef.current || !isMounted) return null;
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -154,7 +203,7 @@ const SafetyScreen = () => {
         width: 640,
         height: 480
       });
-      setPhotoUri(photo.uri);
+      if (isMounted) setPhotoUri(photo.uri);
       return photo.uri;
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -163,10 +212,11 @@ const SafetyScreen = () => {
   };
 
   const startRecording = async () => {
+    if (!isMounted) return;
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
-        alert('Audio permission is required for SOS');
+        if (isMounted) alert('Audio permission is required for SOS');
         return;
       }
 
@@ -179,25 +229,25 @@ const SafetyScreen = () => {
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       
-      setRecording(audioRecording);
+      if (isMounted) setRecording(audioRecording);
     } catch (error) {
       console.error('Error starting recording:', error);
     }
   };
 
   const stopRecording = async (sendToBackend = true) => {
-    try {
-      if (!recording) return;
+    if (!recording || !isMounted) return;
 
+    try {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
-      setAudioUri(uri);
+      if (isMounted) setAudioUri(uri);
       
-      if (sendToBackend) {
+      if (sendToBackend && isMounted) {
         await sendSOSData(uri, photoUri);
       }
       
-      setRecording(null);
+      if (isMounted) setRecording(null);
     } catch (error) {
       console.error('Error stopping recording:', error);
     } finally {
@@ -208,6 +258,7 @@ const SafetyScreen = () => {
   };
 
   const sendSOSData = async (audioUri, photoUri) => {
+    if (!isMounted) return;
     try {
       const userStr = await AsyncStorage.getItem('userData');
       const user = JSON.parse(userStr);
@@ -276,114 +327,17 @@ const SafetyScreen = () => {
       }
     } catch (error) {
       console.error('Error sending SOS data:', error);
-      Alert.alert(
-        'Error',
-        'Failed to send SOS data. Please check your internet connection.'
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (sosJustDeactivated) {
-      return; // Skip countdown if SOS was just deactivated
-    }
-
-    if (countdown > 0 && !isSOSActive && !hasTriggeredSOS) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (isSOSActive) {
-      setCountdown(0);
-      setHasTriggeredSOS(true);
-      if (sound) {
-        sound.stopAsync();
-      }
-    }
-  }, [countdown, isSOSActive, hasTriggeredSOS, sound, sosJustDeactivated]);
-
-  useEffect(() => {
-    if (countdown === 0 && !isSOSActive && !hasTriggeredSOS) {
-      stopRecording(true);
-      setHasTriggeredSOS(true);
-      setIsSOSActive(true);
-      if (sound) {
-        sound.stopAsync();
-      }
-    }
-  }, [countdown]);
-
-  useEffect(() => {
-    if (isSOSActive) {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isMounted) {
         Alert.alert(
-          'SOS Active',
-          'Please enter the security code to deactivate SOS mode',
-          [{ text: 'OK' }]
+          'Error',
+          'Failed to send SOS data. Please check your internet connection.'
         );
-        return true;
-      });
-      return () => backHandler.remove();
-    }
-  }, [isSOSActive]);
-
-  // Cleanup sound on unmount
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [sound]);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const resetSOSState = () => {
-    setIsSOSActive(false);
-    setCountdown(10);
-    setOtpInput('');
-    setHasTriggeredSOS(false);
-    hasInitialized.current = false;
-    
-    if (recording) {
-      stopRecording(false);
-    }
-    
-    if (sound) {
-      sound.stopAsync();
-    }
-  };
-  
-  // Update your handleCancel function
-  const handleCancel = () => {
-    if (!isSOSActive) {
-      stopRecording(false);
-      setCountdown(10);
-      setHasTriggeredSOS(false);
-      if (sound) {
-        sound.stopAsync();
-      }
-      // Only restart camera if we're not navigating away
-      takePhoto().then(() => startRecording());
-    }
-  };
-  
-
-  const handleSkip = () => {
-    if (!isSOSActive) {
-      setCountdown(0);
-      if (sound) {
-        sound.stopAsync();
       }
     }
   };
 
-  // Modify your verifyOTP function to properly reset the state
   const verifyOTP = async () => {
+    if (!isMounted) return;
     try {
       const userStr = await AsyncStorage.getItem('userData');
       const user = JSON.parse(userStr);
@@ -399,27 +353,57 @@ const SafetyScreen = () => {
       });
 
       const data = await response.json();
-      if (data.success) {
-        // Stop any ongoing recordings first
-        resetSOSState();
-
-        setSosJustDeactivated(true);
+      if (data.success && isMounted) {
+        await stopSound();
+        setIsSOSActive(false);
+        setCountdown(10);
+        setOtpInput('');
+        setHasTriggeredSOS(false);
         
         Alert.alert(
           'Success',
           'SOS mode has been deactivated successfully.',
           [{
             text: 'OK',
-            onPress: () => router.push('/FakeCall')
+            onPress: async () => {
+              await stopSound();
+              setIsMounted(false); // Set to false before navigation
+              router.push('/FakeCall');
+            }
           }]
         );
-      } else {
+      } else if (isMounted) {
         Alert.alert('Invalid Code', data.message || 'Please enter the correct security code');
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to verify code');
+      if (isMounted) {
+        Alert.alert('Error', 'Failed to verify code');
+      }
     }
+  };
+
+  const handleCancel = async () => {
+    if (!isSOSActive && isMounted) {
+      await stopRecording(false);
+      await stopSound();
+      setCountdown(10);
+      setHasTriggeredSOS(false);
+      takePhoto().then(() => startRecording());
+    }
+  };
+
+  const handleSkip = async () => {
+    if (!isSOSActive && isMounted) {
+      setCountdown(0);
+      await stopSound();
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!cameraPermission) {

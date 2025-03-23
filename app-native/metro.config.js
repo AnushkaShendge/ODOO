@@ -1,8 +1,8 @@
 
 // metro.config.js
 const {
-    wrapWithReanimatedMetroConfig,
-  } = require('react-native-reanimated/metro-config');
+  wrapWithReanimatedMetroConfig,
+} = require('react-native-reanimated/metro-config');
   
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require('nativewind/metro');
