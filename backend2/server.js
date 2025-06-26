@@ -20,6 +20,9 @@ import {
   postRouter,
   groupRouter,
   collegeRouter,
+  snatchRouter,
+  safetyScoreRouter,
+  financeRouter
 } from './routers/index.js';
 import { socketAuthMiddleware } from './middleware/socketAuthMiddleware.js';
 import User from './models/user.js';
@@ -63,6 +66,9 @@ app.use('/users', userRouter);
 app.use('/chat', chatRouter);
 app.use('/posts', postRouter);
 app.use('/college', collegeRouter);
+app.use('/snatch', snatchRouter);
+app.use('/safety-score', safetyScoreRouter);
+app.use('/finance', financeRouter);
 
 app.get('/', (req, res) => {
   res.send('<h1>Hello World</h1>');

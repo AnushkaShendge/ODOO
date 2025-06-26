@@ -9,6 +9,9 @@ import chatRouter from './chatRouter.js';
 import postRouter from "./postRouter.js";
 import groupRouter from "./groupRouter.js";
 import collegeRouter from './collegeRouter.js';
+import snatchRouter from './snatchRouter.js';
+import safetyScoreRouter from './safetyScoreRouter.js';
+import financeRouter from './financeRouter.js';
 
 export {
   eventRouter,
@@ -22,5 +25,8 @@ export {
   donationCampaignRouter,
   postRouter,
   groupRouter,
-  collegeRouter
+  collegeRouter,
+  snatchRouter,
+  safetyScoreRouter,
+  financeRouter
 };
