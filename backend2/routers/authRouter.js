@@ -5,6 +5,8 @@ import {
   userLogin,
   userRegister,
   bulkCreateUsers,
+  setup2FA,
+  verify2FA,
 } from '../controllers/authController.js';
 import { verify } from '../controllers/authController2.js';
 
@@ -17,5 +19,8 @@ authRouter.post('/user/register', userRegister);
 
 authRouter.get('/:email/verify', verify);
 authRouter.post('/bulkcreateusers', bulkCreateUsers);
+
+authRouter.post('/2fa/setup', setup2FA);
+authRouter.post('/2fa/verify', verify2FA);
 
 export default authRouter;

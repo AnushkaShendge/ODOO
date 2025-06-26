@@ -2,6 +2,8 @@ import bcrypt from 'bcrypt';
 import { User, College } from '../models/index.js';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import speakeasy from 'speakeasy';
+import qrcode from 'qrcode';
 
 export const collegeRegister = async (req, res) => {
   try {
@@ -363,5 +365,32 @@ export const bulkCreateUsers = async (req, res) => {
       error: 'Failed to create users',
       message: error.message,
     });
+  }
+};
+
+// 2FA: Setup TOTP
+export const setup2FA = async (req, res) => {
+  const user = req.user;
+  const secret = speakeasy.generateSecret({ name: `Saheli (${user.email})` });
+  // Save secret.base32 to user profile in DB (not shown here)
+  const otpauth_url = secret.otpauth_url;
+  const qr = await qrcode.toDataURL(otpauth_url);
+  res.json({ secret: secret.base32, otpauth_url, qr });
+};
+
+// 2FA: Verify TOTP
+export const verify2FA = async (req, res) => {
+  const user = req.user;
+  const { token, secret } = req.body;
+  const verified = speakeasy.totp.verify({
+    secret,
+    encoding: 'base32',
+    token
+  });
+  if (verified) {
+    // Mark 2FA as enabled for user in DB (not shown here)
+    res.json({ verified: true });
+  } else {
+    res.status(400).json({ verified: false });
   }
 };
