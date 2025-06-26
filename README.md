@@ -1,4 +1,4 @@
-# Saheli Platform Backend (Shree & Shakti)
+# Saheli Platform Backend
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -11,9 +11,20 @@
 
 ---
 
-## 🛡️ Shakti (Safety) Module
+## 📦 Module Overview
+
+| Module  | Description                                      | Key Features (Scope)                |
+|---------|--------------------------------------------------|-------------------------------------|
+| Shakti  | Safety, emergency, and real-time protection      | SOS, contacts, location, snatch, etc|
+| Shree   | Personal and group financial management & growth | Transactions, budgets, analytics, etc|
+
+---
+
+# 🛡️ Shakti (Safety) Module
 
 The Shakti module provides a comprehensive, real-time safety suite for users, including SOS alerts, emergency contacts, location sharing, fake calls, snatch detection, safety scoring, audit logging, and more. All endpoints are secure, auditable, and extensible for future features.
+
+## 🚨 Features
 
 | Feature                | Description                                                                                 |
 |-----------------------|---------------------------------------------------------------------------------------------|
@@ -26,41 +37,41 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 | **Audit Log**         | Unified, exportable log of all safety events                                                 |
 | **History**           | Location and event history for user and compliance                                          |
 
-### 📚 Shakti API Endpoints
+## 📚 API Endpoints
 
-#### SOS
+### SOS
 - `POST   /api/sos/trigger` — Trigger SOS (OTP, location, contacts, audit)
 - `POST   /api/sos/verify` — Verify OTP for SOS
 - `POST   /api/trigger` — Trigger SOS with media (audio/photo)
 - `POST   /api/:sosId/upload` — Upload media to SOS alert
 - `POST   /api/:sosId/end` — End SOS (OTP required)
 
-#### Emergency Contacts
+### Emergency Contacts
 - `POST   /emergency-contacts/` — Add a contact
 - `GET    /emergency-contacts/` — List all contacts (personal + global)
 - `PATCH  /emergency-contacts/:id` — Update a contact
 - `DELETE /emergency-contacts/:id` — Delete a contact
 
-#### Location Sharing
+### Location Sharing
 - `POST   /location/share` — Share current location with all contacts
 
-#### Fake Call
+### Fake Call
 - `POST   /fake-call/trigger` — Trigger a fake incoming call
 
-#### Snatch Detection
+### Snatch Detection
 - `POST   /snatch/report` — Report a snatch event (ML route prediction, notify contacts)
 
-#### Safety Score
+### Safety Score
 - `GET    /safety-score/` — Get current safety score and tips
 - `POST   /safety-score/update` — Update safety score (delta)
 
-#### Audit Log
+### Audit Log
 - `GET    /audit-logs/` — Get all audit logs (filter by eventType, limit)
 
-#### History
+### History
 - `GET    /api/history/` — Get user location/event history
 
-### 🗃️ Data Models (Key Fields)
+## 🗃️ Data Models (Key Fields)
 
 **SOSAlert**
 - `user`: User reference
@@ -78,7 +89,7 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 **History**
 - `userId`, `userName`, `startTime`, `endTime`, `locations` (array of { latitude, longitude, placeName, timestamp }), `isActive`
 
-### 🔒 Security & Real-Time
+## 🔒 Security & Real-Time
 - **JWT Auth**: All endpoints require authentication
 - **Audit Log**: Every event is logged for compliance
 - **Real-Time**: Socket.IO for instant notifications (SOS, snatch, etc.)
@@ -86,6 +97,10 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 - **Extensible**: Modular controllers, easy to add new safety features
 
 ---
+
+# 💰 Shree (Finance) Module
+
+The Shree module is a production-grade, scalable, and extensible financial management API for the Saheli platform. It supports personal and group finance, advanced analytics, real-time notifications, ML/AI integration, and robust security.
 
 ## 🚀 Features
 
@@ -99,8 +114,6 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 | **Security**     | JWT auth, role-based access, 2FA (TOTP), GDPR endpoints, audit log, secure file upload        |
 | **Integrations** | ML/AI microservices, currency conversion, bulk import/export, file upload, investment/loan stubs |
 | **Docs**         | Swagger/OpenAPI, detailed README, usage notes, environment config                             |
-
----
 
 ## 📚 API Endpoints
 
@@ -186,13 +199,9 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 - `GET    /finance/invoices` — List invoices (stub)
 - `GET    /finance/payments` — List payments (stub)
 
----
+## 🗃️ Data Models (Key Fields)
 
-## 🏷️ Tags & Badges
-- **Tags:** Add arbitrary tags to transactions for flexible filtering and analytics.
-- **Badges:** (Planned) Earn badges for financial milestones, savings streaks, and more.
-
----
+*See code for full Mongoose schemas. Key models: Transaction, Category, Budget, Goal, Group, AuditLog, User, etc.*
 
 ## 🛡️ Security & Compliance
 - **Authentication:** JWT-based, with optional 2FA (TOTP)
@@ -200,8 +209,6 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 - **Audit Log:** All changes are logged for compliance
 - **GDPR:** Export/delete all user finance data
 - **File Uploads:** Secure, with ML/AI extraction
-
----
 
 ## ⚙️ Usage & Environment
 - **Environment Variables:**
@@ -213,8 +220,6 @@ The Shakti module provides a comprehensive, real-time safety suite for users, in
 - **Currency Conversion:** Uses [exchangerate-api.com](https://www.exchangerate-api.com/) for real-time rates
 - **Bulk Import/Export:** Use `/finance/import` and `/finance/export` for CSV/JSON operations
 - **Group Finance:** Only group members can access group endpoints; approval workflow and permissions enforced per group
-
----
 
 ## 📝 Documentation
 - **Swagger/OpenAPI:** See [`backend2/swagger.yaml`](backend2/swagger.yaml) for full API docs
