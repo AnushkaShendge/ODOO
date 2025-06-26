@@ -238,4 +238,145 @@ For support, open an issue on GitHub or contact the maintainers.
 ---
 
 ## 📄 License
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details. 
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+# 🌱 Sakhi (Growth & Learning) Module
+
+The Sakhi module is a robust, AI-powered growth and learning platform. It features skills matching, community forums, custom roadmaps, digital badges, mentor matching, a course library, unified dashboard, gamification, notifications, and full offline sync/export/import. All endpoints are secure, auditable, and extensible.
+
+## 🚀 Features
+
+| Feature                | Description                                                                                 |
+|-----------------------|---------------------------------------------------------------------------------------------|
+| **Skills Matching**   | AI/ML matches your skills to mentors, jobs, and events; NLP skill extraction                |
+| **Forum**             | Community threads, posts, comments, moderation, categories, analytics                       |
+| **Roadmap Plan**      | Custom growth plans with quizzes, lessons, media, mentor assignment, reminders              |
+| **Skill Badges**      | Earn digital badges for milestones; auto-award, catalog, progress, leaderboards             |
+| **Mentors**           | Mentor/mentee assignment, search, chat, recommendations                                     |
+| **Course Library**    | Courses with lessons, media (video, PDF, image), categories, reviews, recommendations       |
+| **Dashboard**         | Unified progress across all modules, customizable widgets, visualizations                   |
+| **Gamification**      | Streaks, badge wall, leaderboards, notifications                                           |
+| **Notifications**     | Real-time, push/email, for forum, roadmap, badges, dashboard                               |
+| **Offline Sync**      | Export/import all user data for offline use                                                 |
+
+## 📚 API Endpoints
+
+### Skills Matching & ML/NLP
+- `POST   /growth/skills/match-skills` — User-user skills matching (stub)
+- `POST   /growth/skills/extract` — Extract skills from text (NLP/ML)
+- `POST   /growth/skills/match-ml` — AI/ML skills matching (mentors, jobs, events)
+- `POST   /growth/recommend/jobs` — Recommend jobs (AI/ML)
+- `POST   /growth/recommend/mentors` — Recommend mentors (AI/ML)
+- `POST   /growth/recommend/events` — Recommend events (AI/ML)
+
+### Forum
+- `POST   /growth/forum/thread` — Create thread
+- `GET    /growth/forum/threads` — List threads
+- `POST   /growth/forum/post` — Create post
+- `GET    /growth/forum/posts/:threadId` — List posts in thread
+- `POST   /growth/forum/comment` — Create comment
+- `GET    /growth/forum/comments/:postId` — List comments
+- `POST   /forum/categories` — Create forum category
+- `GET    /forum/categories` — List forum categories
+
+### Roadmap
+- `POST   /growth/roadmap` — Create roadmap
+- `GET    /growth/roadmaps` — List user roadmaps
+- `PATCH  /growth/roadmap/:id` — Update roadmap
+
+### Quizzes
+- `POST   /quizzes` — Create quiz
+- `GET    /quizzes` — List quizzes
+- `GET    /quizzes/:id` — Get quiz by id
+- `PATCH  /quizzes/:id` — Update quiz
+- `DELETE /quizzes/:id` — Delete quiz
+- `POST   /quizzes/:id/submit` — Submit quiz answers
+
+### Badges & Gamification
+- `POST   /growth/badge` — Award badge
+- `GET    /growth/badges` — List user badges
+- `POST   /badges/catalog` — Create badge in catalog
+- `GET    /badges/catalog` — List all badges in catalog
+- `GET    /badges/catalog/:id` — Get badge by id
+- `PATCH  /badges/catalog/:id` — Update badge
+- `DELETE /badges/catalog/:id` — Delete badge
+- `POST   /leaderboard` — Create leaderboard
+- `GET    /leaderboard` — List leaderboards
+- `GET    /leaderboard/:category` — Get leaderboard by category
+- `PATCH  /leaderboard/:category` — Update leaderboard
+
+### Mentors
+- `POST   /mentors` — Create mentor profile
+- `GET    /mentors` — List/search mentors
+- `GET    /mentors/:id` — Get mentor by id
+- `PATCH  /mentors/:id` — Update mentor
+- `DELETE /mentors/:id` — Delete mentor
+- `POST   /mentors/:id/assign-mentee` — Assign mentee
+- `GET    /mentors/search` — Search mentors
+
+### Course Library & Media
+- `POST   /learning/course` — Create course
+- `GET    /learning/courses` — List all courses
+- `POST   /course-media` — Upload course/roadmap media
+- `GET    /course-media` — List media
+- `GET    /course-media/:id` — Get media by id
+- `DELETE /course-media/:id` — Delete media
+
+### Dashboard
+- `GET    /learning/dashboard` — Get user dashboard (progress)
+- `GET    /dashboard/config` — Get dashboard config
+- `PATCH  /dashboard/config` — Update dashboard config
+
+### Notifications
+- `POST   /notifications` — Create notification
+- `GET    /notifications` — List notifications
+- `PATCH  /notifications/:id` — Mark as read
+- `DELETE /notifications/:id` — Delete notification
+
+### Offline Sync
+- `GET    /growth/offline/export` — Export all user Sakhi/growth/forum/roadmap/badge data as JSON
+- `POST   /growth/offline/import` — Import user data (upsert)
+
+## 🗃️ Data Models (Key Fields)
+
+**Mentor**
+- `user`: User reference
+- `skills`, `bio`, `availability`, `mentees`, `rating`, `createdAt`
+
+**Quiz**
+- `title`, `questions` (array), `owner`, `relatedTo`, `createdAt`
+
+**BadgeCatalog**
+- `name`, `description`, `criteria`, `iconUrl`, `category`, `createdAt`
+
+**Notification**
+- `user`, `type`, `message`, `read`, `relatedRef`, `createdAt`
+
+**Leaderboard**
+- `category`, `users` (array of {user, score}), `updatedAt`
+
+**ForumCategory**
+- `name`, `description`, `createdAt`
+
+**CourseMedia**
+- `type` (video/pdf/image), `url`, `course`, `roadmap`, `uploadedBy`, `createdAt`
+
+**Roadmap**
+- `user`, `title`, `steps` (array), `createdAt`
+
+**Badge**
+- `user`, `name`, `description`, `criteria`, `dateEarned`
+
+**Enrollment**
+- `user`, `course`, `progress`, `completed`, `createdAt`
+
+**Course**
+- `title`, `description`, `content` (lessons array), `createdAt`
+
+## 🔒 Security & Extensibility
+- **JWT Auth**: All endpoints require authentication
+- **Audit Log**: All actions are logged for compliance
+- **ML/AI**: Skills matching, recommendations, NLP
+- **Offline**: Export/import all user data
+- **Gamification**: Badges, leaderboards, streaks
+- **Extensible**: Modular, easy to add new features 
