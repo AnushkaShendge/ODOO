@@ -379,4 +379,89 @@ The Sakhi module is a robust, AI-powered growth and learning platform. It featur
 - **ML/AI**: Skills matching, recommendations, NLP
 - **Offline**: Export/import all user data
 - **Gamification**: Badges, leaderboards, streaks
-- **Extensible**: Modular, easy to add new features 
+- **Extensible**: Modular, easy to add new features
+
+## 🧠 How Skills Matching Works (AI/ML Pipeline)
+
+Sakhi uses a robust, modern AI/ML pipeline for skills matching and recommendations. This is designed for scalability, explainability, and real-world impact—ideal for interviews and production.
+
+### 1. Multi-Stage Matching Pipeline
+
+#### A. Skill Extraction (NLP)
+- **Input:** User provides free-text (bio, resume, interests, etc.) or selects from a list.
+- **Process:**
+  - Use an NLP model (e.g., spaCy, BERT, or a custom ML microservice) to extract and normalize skills from text.
+  - Deduplicate and map synonyms (e.g., "JS" → "JavaScript").
+- **API:** `POST /growth/skills/extract`
+
+#### B. Embedding & Semantic Representation
+- **Process:**
+  - Convert user's skills and all available jobs, mentors, and events into vector embeddings using a pre-trained model (e.g., Sentence Transformers, OpenAI, Cohere, or in-house BERT).
+  - Store these embeddings in a vector database (e.g., Pinecone, FAISS, or Qdrant).
+- **Why:** This allows for semantic (meaning-based) matching, not just keyword overlap.
+
+#### C. Retrieval-Augmented Generation (RAG) or Hybrid Search
+- **Process:**
+  - When a user requests matches, their skill embedding is used to perform a **semantic search** in the vector DB for jobs, mentors, and events.
+  - Optionally, combine with keyword/boolean filters (location, availability, etc.) for hybrid search.
+  - For each match, retrieve the top-N most relevant items.
+- **API:** `POST /growth/skills/match-ml` (with type: job, mentor, event)
+
+#### D. Scoring & Explanation
+- **Process:**
+  - Each match is scored based on cosine similarity of embeddings, plus bonus for exact skill overlap, recency, or user preferences.
+  - For each result, generate a human-readable explanation (e.g., "Matched on: JavaScript, React, Node.js").
+- **API:** Response includes `score` and `explanation` for each match.
+
+#### E. Recommendations
+- **Process:**
+  - The system can also recommend upskilling paths, mentors to follow, or events to attend, based on gaps between user skills and target roles.
+- **API:** `POST /growth/recommend/jobs`, `/growth/recommend/mentors`, `/growth/recommend/events`
+
+### Example: End-to-End Flow
+1. **User uploads resume or enters skills/interests.**
+2. **Backend calls ML microservice** to extract and normalize skills.
+3. **Skills are embedded** and compared against all jobs, mentors, and events in the vector DB.
+4. **Top matches** are returned, each with a score and explanation.
+5. **User sees recommendations** and can filter, save, or request mentorship.
+
+### Why This Is Robust & Modern
+- **Semantic search** (not just keyword): Finds relevant matches even if exact words differ.
+- **RAG/Hybrid**: Combines best of retrieval (vector DB) and generation (explanations, upskilling advice).
+- **Scalable**: Works for millions of users, jobs, mentors, and events.
+- **Explainable**: Every match comes with a reason, not a black box.
+- **Extensible**: Can plug in new ML models, add more data sources, or tune scoring.
+
+### (Optional) Implementation Snippet for ML Microservice
+
+```python
+# Example: FastAPI endpoint for semantic skills matching (Python, using Sentence Transformers)
+from fastapi import FastAPI, Body
+from sentence_transformers import SentenceTransformer, util
+import numpy as np
+
+app = FastAPI()
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Assume jobs/mentors/events are pre-embedded and stored in a DB
+# For demo, use in-memory
+ITEMS = [
+    {"id": 1, "type": "job", "title": "Frontend Developer", "skills": ["JavaScript", "React", "CSS"]},
+    # ... more items ...
+]
+ITEM_EMBEDDINGS = [model.encode(' '.join(item['skills'])) for item in ITEMS]
+
+@app.post('/api/recommend')
+def recommend(skills: list = Body(...), type: str = Body(...)):
+    user_emb = model.encode(' '.join(skills))
+    scores = [float(util.cos_sim(user_emb, emb)) for emb in ITEM_EMBEDDINGS]
+    results = [
+        {**item, "score": score, "explanation": f"Matched on: {', '.join(set(skills) & set(item['skills']))}"}
+        for item, score in zip(ITEMS, scores) if item['type'] == type
+    ]
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return {"recommendations": results[:5]}
+```
+
+> **Interview Tip:**
+>"Our skills matching system uses a multi-stage AI pipeline: First, we extract and normalize user skills using NLP. Then, we embed both user skills and all jobs/mentors/events using a transformer model, and store these in a vector database. When matching, we use semantic search (vector similarity) plus hybrid filters to find the best fits. Each match is scored and comes with a human-readable explanation. This approach is robust, scalable, and explainable—leveraging modern RAG and semantic search techniques, not just keyword overlap." 
