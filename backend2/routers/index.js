@@ -12,6 +12,8 @@ import collegeRouter from './collegeRouter.js';
 import snatchRouter from './snatchRouter.js';
 import safetyScoreRouter from './safetyScoreRouter.js';
 import financeRouter from './financeRouter.js';
+import growthRouter from './growthRouter.js';
+import learningRouter from './learningRouter.js';
 
 export {
   eventRouter,
@@ -28,5 +30,7 @@ export {
   collegeRouter,
   snatchRouter,
   safetyScoreRouter,
-  financeRouter
+  financeRouter,
+  growthRouter,
+  learningRouter
 };
