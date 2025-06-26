@@ -1,4 +1,4 @@
-# Saheli Finance Backend (Shree)
+# Saheli Platform Backend (Shree & Shakti)
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -7,7 +7,83 @@
 
 ---
 
-> **Saheli Finance Backend (Shree)** is a production-grade, scalable, and extensible financial management API for the Saheli platform. It supports personal and group finance, advanced analytics, real-time notifications, ML/AI integration, and robust security. Designed for both enterprise and demo/interview use.
+> **Saheli Platform Backend** powers the Shree (Finance) and Shakti (Safety) modules for the Saheli platform. It is production-grade, scalable, and extensible, supporting real-time features, ML/AI integration, robust security, and a modular architecture. Designed for both enterprise and demo/interview use.
+
+---
+
+## 🛡️ Shakti (Safety) Module
+
+The Shakti module provides a comprehensive, real-time safety suite for users, including SOS alerts, emergency contacts, location sharing, fake calls, snatch detection, safety scoring, audit logging, and more. All endpoints are secure, auditable, and extensible for future features.
+
+| Feature                | Description                                                                                 |
+|-----------------------|---------------------------------------------------------------------------------------------|
+| **SOS Alerts**        | One-tap SOS with OTP, location, media upload, multi-channel notification, audit, analytics   |
+| **Emergency Contacts**| CRUD for personal/global contacts, location-based, multi-type (police, ambulance, etc.)      |
+| **Location Sharing**  | Real-time sharing to all contacts, with audit and notification                               |
+| **Fake Call**         | Trigger fake incoming call for safety diversion                                              |
+| **Snatch Detection**  | Report snatch event, ML route prediction stub, notify guardians                             |
+| **Safety Score**      | Dynamic score based on user actions, with tips and gamification                             |
+| **Audit Log**         | Unified, exportable log of all safety events                                                 |
+| **History**           | Location and event history for user and compliance                                          |
+
+### 📚 Shakti API Endpoints
+
+#### SOS
+- `POST   /api/sos/trigger` — Trigger SOS (OTP, location, contacts, audit)
+- `POST   /api/sos/verify` — Verify OTP for SOS
+- `POST   /api/trigger` — Trigger SOS with media (audio/photo)
+- `POST   /api/:sosId/upload` — Upload media to SOS alert
+- `POST   /api/:sosId/end` — End SOS (OTP required)
+
+#### Emergency Contacts
+- `POST   /emergency-contacts/` — Add a contact
+- `GET    /emergency-contacts/` — List all contacts (personal + global)
+- `PATCH  /emergency-contacts/:id` — Update a contact
+- `DELETE /emergency-contacts/:id` — Delete a contact
+
+#### Location Sharing
+- `POST   /location/share` — Share current location with all contacts
+
+#### Fake Call
+- `POST   /fake-call/trigger` — Trigger a fake incoming call
+
+#### Snatch Detection
+- `POST   /snatch/report` — Report a snatch event (ML route prediction, notify contacts)
+
+#### Safety Score
+- `GET    /safety-score/` — Get current safety score and tips
+- `POST   /safety-score/update` — Update safety score (delta)
+
+#### Audit Log
+- `GET    /audit-logs/` — Get all audit logs (filter by eventType, limit)
+
+#### History
+- `GET    /api/history/` — Get user location/event history
+
+### 🗃️ Data Models (Key Fields)
+
+**SOSAlert**
+- `user`: User reference
+- `location`: GeoJSON Point ([longitude, latitude])
+- `status`: pending | active | resolved | cancelled
+- `otp`, `otpExpires`: OTP for ending SOS
+- `media`: [{ type: audio|video, url }]
+- `resolvedAt`, `resolvedBy`, `createdAt`
+
+**EmergencyContact**
+- `user`: User reference (null for global)
+- `name`, `phone`, `type`: personal | police | ambulance | fire | support | admin
+- `country`, `city`, `isGlobal`, `createdAt`
+
+**History**
+- `userId`, `userName`, `startTime`, `endTime`, `locations` (array of { latitude, longitude, placeName, timestamp }), `isActive`
+
+### 🔒 Security & Real-Time
+- **JWT Auth**: All endpoints require authentication
+- **Audit Log**: Every event is logged for compliance
+- **Real-Time**: Socket.IO for instant notifications (SOS, snatch, etc.)
+- **ML/AI**: Stubs for route prediction, safety score, and more
+- **Extensible**: Modular controllers, easy to add new safety features
 
 ---
 
