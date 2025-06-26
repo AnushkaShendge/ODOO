@@ -28,6 +28,7 @@ import {
 } from './routers/index.js';
 import { socketAuthMiddleware } from './middleware/socketAuthMiddleware.js';
 import User from './models/user.js';
+import { setIO } from './utils/socketInstance.js';
 
 const app = express();
 const server = createServer(app);
@@ -161,6 +162,8 @@ io.on('connection', (socket) => {
     });
   });
 });
+
+setIO(io);
 
 server.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT}`);

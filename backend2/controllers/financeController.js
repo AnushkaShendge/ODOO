@@ -4,6 +4,14 @@ const FinanceBudget = require('../models/financeBudget');
 const FinanceGoal = require('../models/financeGoal');
 const User = require('../models/user');
 const mongoose = require('mongoose');
+const AuditLog = require('../models/auditLog');
+const { getIO } = require('../utils/socketInstance');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const axios = require('axios');
+const fs = require('fs');
+const csv = require('csv-parser');
+const { Parser } = require('json2csv');
 
 // --- CATEGORY ---
 exports.createCategory = async (req, res) => {
@@ -29,19 +37,35 @@ exports.deleteCategory = async (req, res) => {
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
+exports.updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const update = req.body;
+    const category = await FinanceCategory.findByIdAndUpdate(id, update, { new: true });
+    await AuditLog.create({ user: category.user, action: 'updateCategory', details: { id, update } });
+    res.json({ success: true, category });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
 
 // --- TRANSACTION ---
 exports.createTransaction = async (req, res) => {
   try {
-    const { userId, amount, type, category, date, description, tags, sharedWith, attachment } = req.body;
+    const { userId, amount, type, category, date, description, tags, sharedWith, attachment, splitType, splitAmounts, currency } = req.body;
     if (!userId || !amount || !type || !category) return res.status(400).json({ error: 'Missing required fields' });
-    const tx = await FinanceTransaction.create({ user: userId, amount, type, category, date, description, tags, sharedWith, attachment });
+    let finalSplitAmounts = splitAmounts;
+    if (splitType === 'equal' && sharedWith && sharedWith.length > 0) {
+      const totalUsers = sharedWith.length + 1;
+      const share = amount / totalUsers;
+      finalSplitAmounts = [{ user: userId, share }, ...sharedWith.map(u => ({ user: u, share }))];
+    }
+    const tx = await FinanceTransaction.create({ user: userId, amount, type, category, date, description, tags, sharedWith, splitType, splitAmounts: finalSplitAmounts, attachment, currency });
+    await AuditLog.create({ user: userId, action: 'createTransaction', details: tx });
     res.status(201).json({ success: true, transaction: tx });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 exports.getTransactions = async (req, res) => {
   try {
-    const { userId, type, category, startDate, endDate } = req.query;
+    const { userId, type, category, startDate, endDate, page = 1, limit = 20 } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const filter = { user: userId };
     if (type) filter.type = type;
@@ -51,7 +75,10 @@ exports.getTransactions = async (req, res) => {
       if (startDate) filter.date.$gte = new Date(startDate);
       if (endDate) filter.date.$lte = new Date(endDate);
     }
-    const txs = await FinanceTransaction.find(filter).populate('category sharedWith');
+    const txs = await FinanceTransaction.find(filter)
+      .populate('category sharedWith')
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
     res.json({ success: true, transactions: txs });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -88,6 +115,15 @@ exports.getBudgets = async (req, res) => {
     res.json({ success: true, budgets });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
+exports.updateBudget = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const update = req.body;
+    const budget = await FinanceBudget.findByIdAndUpdate(id, update, { new: true });
+    await AuditLog.create({ user: budget.user, action: 'updateBudget', details: { id, update } });
+    res.json({ success: true, budget });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
 
 // --- GOAL ---
 exports.createGoal = async (req, res) => {
@@ -100,9 +136,11 @@ exports.createGoal = async (req, res) => {
 };
 exports.getGoals = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, page = 1, limit = 20 } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId required' });
-    const goals = await FinanceGoal.find({ user: userId });
+    const goals = await FinanceGoal.find({ user: userId })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
     res.json({ success: true, goals });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -116,9 +154,14 @@ exports.updateGoal = async (req, res) => {
 };
 
 // --- ANALYTICS ---
+const getConversionRate = async (from, to) => {
+  if (from === to) return 1;
+  const response = await axios.get(`https://api.exchangerate-api.com/v4/latest/${from}`);
+  return response.data.rates[to] || 1;
+};
 exports.getSummary = async (req, res) => {
   try {
-    const { userId, month } = req.query;
+    const { userId, month, currency = 'INR' } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const match = { user: mongoose.Types.ObjectId(userId) };
     if (month) {
@@ -131,11 +174,16 @@ exports.getSummary = async (req, res) => {
     const summary = await FinanceTransaction.aggregate([
       { $match: match },
       { $group: {
-        _id: '$type',
+        _id: { type: '$type', currency: '$currency' },
         total: { $sum: '$amount' }
       }}
     ]);
-    res.json({ success: true, summary });
+    // Convert all to requested currency
+    const converted = await Promise.all(summary.map(async s => {
+      const rate = await getConversionRate(s._id.currency, currency);
+      return { type: s._id.type, total: s.total * rate, currency };
+    }));
+    res.json({ success: true, summary: converted });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 exports.getOverBudget = async (req, res) => {
@@ -163,6 +211,9 @@ exports.getOverBudget = async (req, res) => {
       const spent = total[0]?.sum || 0;
       if (spent > budget.amount) {
         overBudget.push({ budget, spent, overBy: spent - budget.amount });
+        // Emit notification (stub)
+        const io = getIO();
+        if (io) io.to(userId.toString()).emit('overBudget', { budget, spent, overBy: spent - budget.amount });
       }
     }
     res.json({ success: true, overBudget });
@@ -172,18 +223,33 @@ exports.getOverBudget = async (req, res) => {
 // --- RECOMMENDATIONS (stub) ---
 exports.getRecommendations = async (req, res) => {
   try {
-    // In production, call ML microservice
-    res.json({ success: true, recommendations: ['Stub: Spend less on food', 'Stub: Increase savings'] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    // Call ML microservice
+    const { userId } = req.query;
+    const response = await axios.post(process.env.ML_RECOMMENDATION_URL, { userId });
+    res.json({ success: true, recommendations: response.data.recommendations });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 // --- DOC UPLOAD (stub) ---
-exports.uploadDoc = async (req, res) => {
-  try {
-    // In production, handle file upload and call ML extraction
-    res.json({ success: true, extracted: { amount: 123, category: 'Food', date: new Date() }, message: 'Stub: Replace with real ML extraction' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-};
+exports.uploadDoc = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const filePath = req.file ? req.file.path : null;
+      let extracted = {};
+      if (filePath) {
+        // Call ML doc extraction microservice
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(filePath));
+        const response = await axios.post(process.env.ML_DOC_EXTRACTION_URL, formData, { headers: formData.getHeaders() });
+        extracted = response.data;
+      }
+      res.json({ success: true, extracted, message: 'ML extraction complete' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  }
+];
 
 // --- EXPENSE SHARING ---
 exports.shareExpense = async (req, res) => {
@@ -195,5 +261,38 @@ exports.shareExpense = async (req, res) => {
     tx.sharedWith = sharedWith;
     await tx.save();
     res.json({ success: true, transaction: tx });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.importTransactions = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const filePath = req.file ? req.file.path : null;
+      if (!filePath) return res.status(400).json({ error: 'No file uploaded' });
+      const results = [];
+      fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+          const inserted = await FinanceTransaction.insertMany(results);
+          res.json({ success: true, inserted });
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  }
+];
+exports.exportTransactions = async (req, res) => {
+  try {
+    const { userId, format = 'json' } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const txs = await FinanceTransaction.find({ user: userId });
+    if (format === 'csv') {
+      const parser = new Parser();
+      const csvData = parser.parse(txs.map(tx => tx.toObject()));
+      res.header('Content-Type', 'text/csv');
+      res.attachment('transactions.csv');
+      return res.send(csvData);
+    }
+    res.json({ success: true, transactions: txs });
   } catch (err) { res.status(500).json({ error: err.message }); }
 }; 

@@ -1,0 +1,101 @@
+openapi: 3.0.0
+info:
+  title: Finance API
+  version: 1.0.0
+  description: API documentation for the Finance module
+servers:
+  - url: http://localhost:3000/finance
+paths:
+  /category:
+    post:
+      summary: Create a new category
+      responses:
+        '201': { description: Created }
+  /categories:
+    get:
+      summary: List categories
+      responses:
+        '200': { description: OK }
+  /category/{id}:
+    patch:
+      summary: Update a category
+      responses:
+        '200': { description: OK }
+    delete:
+      summary: Delete a category
+      responses:
+        '200': { description: OK }
+  /transaction:
+    post:
+      summary: Create a transaction
+      responses:
+        '201': { description: Created }
+  /transactions:
+    get:
+      summary: List transactions
+      responses:
+        '200': { description: OK }
+  /transaction/{id}:
+    patch:
+      summary: Update a transaction
+      responses:
+        '200': { description: OK }
+    delete:
+      summary: Delete a transaction
+      responses:
+        '200': { description: OK }
+  /budget:
+    post:
+      summary: Create a budget
+      responses:
+        '201': { description: Created }
+  /budgets:
+    get:
+      summary: List budgets
+      responses:
+        '200': { description: OK }
+  /budget/{id}:
+    patch:
+      summary: Update a budget
+      responses:
+        '200': { description: OK }
+  /goal:
+    post:
+      summary: Create a goal
+      responses:
+        '201': { description: Created }
+  /goals:
+    get:
+      summary: List goals
+      responses:
+        '200': { description: OK }
+  /goal/{id}:
+    patch:
+      summary: Update a goal
+      responses:
+        '200': { description: OK }
+  /analytics/summary:
+    get:
+      summary: Get summary analytics
+      responses:
+        '200': { description: OK }
+  /analytics/overbudget:
+    get:
+      summary: Get over-budget analytics
+      responses:
+        '200': { description: OK }
+  /analytics/recommendations:
+    get:
+      summary: Get recommendations
+      responses:
+        '200': { description: OK }
+  /upload:
+    post:
+      summary: Upload a receipt/bill
+      responses:
+        '200': { description: OK }
+  /share:
+    post:
+      summary: Share an expense
+      responses:
+        '200': { description: OK } 
