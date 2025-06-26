@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-data:/data/db
+  shakti:
+    build: ./backend
+    restart: always
+    env_file:
+      - ./backend/.env.example
+    depends_on:
+      - mongo
+    ports:
+      - 5000:5000
+    networks:
+      - saheli
+  shree:
+    build: ./backend2
+    restart: always
+    env_file:
+      - ./backend2/.env.example
+    depends_on:
+      - mongo
+    ports:
+      - 3000:3000
+    networks:
+      - saheli
+  ml:
+    build: ./ML
+    restart: always
+    depends_on:
+      - mongo
+    ports:
+      - 8000:8000
+    networks:
+      - saheli
+volumes:
+  mongo-data:
+networks:
+  saheli:
+    driver: bridge 
