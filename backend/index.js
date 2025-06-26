@@ -13,6 +13,12 @@ const {Server} = require("socket.io");
 const { initializeSocket } = require('./Sockets');
 const {initializzeSocket} = require('./Sockets/friend');
 const multer = require('multer'); // Add multer
+import emergencyContactRoutes from './routes/emergencyContactRoutes.js';
+import auditLogRoutes from './routes/auditLogRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
+import snatchRoutes from './routes/snatchRoutes.js';
+import fakeCallRoutes from './routes/fakeCallRoutes.js';
+import safetyScoreRoutes from './routes/safetyScoreRoutes.js';
 
 connectDB();
 
@@ -37,6 +43,12 @@ app.use('/api', upload.fields([
   { name: 'photo', maxCount: 1 }
 ]), require('./routes/sosRoutes')); // Use multer middleware for SOS routes
 app.use('/api/history', require('./routes/historyRoutes'));
+app.use('/emergency-contacts', emergencyContactRoutes);
+app.use('/audit-logs', auditLogRoutes);
+app.use('/location', locationRoutes);
+app.use('/snatch', snatchRoutes);
+app.use('/fake-call', fakeCallRoutes);
+app.use('/safety-score', safetyScoreRoutes);
 
 const expressServer = app.listen(PORT,()=>console.log(`Server running on Port ${PORT}`));
 

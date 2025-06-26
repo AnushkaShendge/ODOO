@@ -1,27 +1,24 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+const { Schema } = mongoose;
 
-const sosAlertSchema = new mongoose.Schema({
-  userName: {
-    type: String,
-    required: true
-  },
-  otp: {
-    type: String,
-    required: true
-  },
+const SOSAlertSchema = new Schema({
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   location: {
-    latitude: Number,
-    longitude: Number
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true } // [longitude, latitude]
   },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    expires: 3600 // Document expires after 1 hour
-  }
+  status: { type: String, enum: ['pending', 'active', 'resolved', 'cancelled'], default: 'pending' },
+  otp: { type: String },
+  otpExpires: { type: Date },
+  media: [{
+    type: { type: String, enum: ['audio', 'video'] },
+    url: { type: String }
+  }],
+  resolvedAt: { type: Date },
+  resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('SOSAlert', sosAlertSchema);
+SOSAlertSchema.index({ location: '2dsphere' });
+
+export default mongoose.model('SOSAlert', SOSAlertSchema);
